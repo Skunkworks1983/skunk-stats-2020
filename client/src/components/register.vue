@@ -112,7 +112,6 @@
 
 <script>
 import * as config from "../config.js";
-import axios from "axios";
 
 export default {
   name: "register",
