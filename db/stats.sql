@@ -1,0 +1,3 @@
+CREATE TABLE stats (
+  team INT NOTNULL PRIMARY KEY
+)
