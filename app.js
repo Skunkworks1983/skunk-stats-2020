@@ -20,8 +20,6 @@ var bcrypt = require('bcrypt');
 var keys = require('./key');
 // For file system operations
 var fs = require('fs');
-// Support Vue History Mode
-var history = require('connect-history-api-fallback');
 // For asynchronous processing tasks
 var Worker = require("tiny-worker");
 // express session 
@@ -41,7 +39,9 @@ var axios = require('axios');
 var rateLimit = require('./lib/rateLimit');
 
 var usersRouter = require('./routes/users');
+var statsRouter = require('./routes/stats');
 var scoutingRouter = require('./routes/scouting');
+// var vueRouter = require('./routes/vueRouting');
 
 const port = process.env.PORT || 3000;
 var app = express();
@@ -74,7 +74,11 @@ const stats = new sqlite3.Database('./db/stats.db', (err) => {
 });
 
 // Open passport strategy
-passport.use(new Strategy(
+passport.use(new Strategy({
+    usernameField: 'email',
+    passwordField: 'passwd',
+    session: false
+  },
   (username, password, cb) => {
     users.query(`SELECT * FROM users2020 WHERE username = '${utils.escape(username)}';`, (err, result) => {
       if (err) {
@@ -116,7 +120,7 @@ app.use(express.urlencoded({
 }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'client', 'dist')));
-app.use(history());
+// app.use(history());
 app.use(helmet());
 app.disable('x-powered-by');
 app.use(rateLimit);
@@ -138,14 +142,15 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use('/users', usersRouter);
+app.use('/stats', statsRouter);
 app.use('/scouting', scoutingRouter);
+// app.use('/', vueRouter);
 
 module.exports = app;
 
-app.get('/', function (req, res, next) {
+app.get('/', (req, res, next) => {
   res.sendFile(`${__dirname}client/dist/index.html`);
 });
-
 
 // On first boot:
 // If there is no database, create one.
@@ -159,7 +164,7 @@ app.get('/', function (req, res, next) {
 app.post('/login', passport.authenticate('local', {
   failureRedirect: '/login'
 }), (req, res) => {
-  // set session
+  req.session
 })
 
 app.listen(port, () => {

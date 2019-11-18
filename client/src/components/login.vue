@@ -1,8 +1,16 @@
 <template>
   <div class="login">
+    <div></div>
     <p>
       Don't have an account?
-      <a href="/register">Register here!</a>
+      <router-link to="/register">Register here!</router-link>
     </p>
   </div>
 </template>
+
+<script>
+export default {};
+</script>
+
+<style scoped>
+</style>

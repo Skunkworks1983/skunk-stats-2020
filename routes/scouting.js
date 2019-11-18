@@ -16,6 +16,10 @@ const matches = mysql.createPool({
   database: 'skunk',
 });
 
+router.get('/scoutBoss', (req, res) => {
+  res.sendFile(`${__dirname}/lib/scoutBoss.html`)
+})
+
 // get data submitted from scouting app
 router.put('/data', bodyParser.json(), (req, res) => {
 

@@ -51,10 +51,10 @@
 </template>
 
 <style >
-@import url("https://fonts.googleapis.com/css?family=Alata|KoHo&display=swap");
+@import url("https://fonts.googleapis.com/css?family=KoHo&display=swap");
 #app {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale; */
   font-family: "KoHo" !important;
 }
 
@@ -85,6 +85,8 @@ ul {
   background: #fdf6e3;
   transition: all 0.6s cubic-bezier(0.945, 0.02, 0.27, 0.665);
   transform-origin: bottom left;
+  /* Trigger hardware acceleration */
+  transform: translateZ(0);
   font-family: "KoHo";
 }
 
@@ -184,7 +186,7 @@ ul ul a {
 .bar3 {
   width: 35px;
   height: 3px;
-  background-color: #b58900;
+  background-color: #20c997;
   margin: 6px 0;
   transition: 0.4s;
 }

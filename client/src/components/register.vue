@@ -1,8 +1,8 @@
 <template>
   <div class="register-container">
-    <h1 class="text-primary">Register</h1>
+    <h1 class="text-success">Register</h1>
     <br />
-    <form class="register-form" @submit.prevent="onSubmit">
+    <form class="register-form" @submit.prevent="onSubmit()">
       <div class="grid-container">
         <div>
           <p for="name">Name:</p>
@@ -104,7 +104,7 @@
       <div class="center">
         <p class="text-danger" v-if="statusCode !== 200">Error {{ statusCode }}.</p>
         <p class="text-danger" v-if="statusText != 'null'">{{ statusText }}</p>
-        <button type="submit" class="btn btn-outline-primary">Submit</button>
+        <button type="submit" class="btn btn-outline-success">Submit</button>
       </div>
     </form>
   </div>

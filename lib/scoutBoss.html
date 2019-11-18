@@ -1,0 +1,2066 @@
+<!doctype html>
+<HTML>
+<!-- <!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!>
+<!                            !>
+<!  SCOUT BOSS   !>
+<!                             !>
+<!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!>
+<!>
+<! By 1983 Skunkworks !>
+<! Converted to Blue Alliance Version 3 !>
+<! Crafted to comply with 2019's FRC Game !>
+<!  Drive Team Version  !> -->
+<HEAD>
+<META name="viewport" content="width=device-width, initial-scale=1.0">
+<META name="keywords" content="FIRST, FRC, Scouting app, Skunk Works, 1983, Steamworks">
+<META name="author" content="Skunk Works Scouting Team">
+<link href="https://fonts.googleapis.com/css?family=Titillium+Web" rel="stylesheet">
+<TITLE>Scout Boss</TITLE>
+<SCRIPT LANGUAGE='JavaScript'>
+// *** Gobal Constants *** //
+// BlueAllianceURL = 'https://www.thebluealliance.com/api/v2/';
+BlueAllianceURL = 'https://www.thebluealliance.com/api/v3/';
+// xbtAPP_ID = "?X-TBA-App-Id=FRC1983:Scouting:v3";
+// xbtAuthKey = "?X-TBA-Auth-Key=d4V33bAbuXiKfuLW1pc4BaLbr56BgiORtyM5hwmRLU5qNf6Rxh83noDdI0mPJJ3R;"	// Authentication Key Indicator
+xbtAuthID = "?X-TBA-Auth-Key=";						// Authentication Key Indicator
+YELLOW = "#AAAA00";										// Lt. yellow color
+BLACK = "#000000";											// Black
+RED = "#FF0000";												// Red
+BLUE = "#0000FF";												// Blue
+GREY = "#EEEEEE";											// Grey
+WHITE = "#FFFFFF";											// White
+TAB = '\t';																// 'tab' character
+ELOBase = 1500.;												// Average ELO is 1500
+ELOFactor = 24.;													// ELO Factor increase/decrease
+
+// *** Global Variables *** //
+var teamNo;															// Team # being searched
+var eventName;													// Blue alliance event key
+var maxMatches;													// # of matches in Event;
+var included;														// # of matches matched team is in
+var clockedIt;														// Clock updated flag
+var teamSpecs;													// Specs of each team
+var startELO;														// Start ELO flag
+var totOffense;														// Offense points collector
+var totDefense;													// Defense points collector
+var Xs;																	// Abscissa variables
+var Ys;																	// Dependent variables (offense scores)
+var Ds;																	// Dependent variables (defense scores)
+// var CCWMs;														// Dependent variables (difference in scores)
+var tempXs;															// Xs' memory array
+var abort;																// Abort flag (singular matrix)
+var theYear;															// Current year
+var thisDay;															// Current day
+var depth;															// Test
+var xbtAuthKey;													// TBA authentication Key
+// var scrWidth;														// Screen width (in pixels)
+// var scrHeight;													// Screen height (in pixels)
+///////////////////////////////
+//                           //
+// Date Difference //
+//                           //
+///////////////////////////////
+//
+// This will provide the difference in days of 'd1' & 'd2'.
+//
+var DateDiff = {
+	inDays: function(d1, d2) {
+	    var t2 = d2.getTime();
+	    var t1 = d1.getTime();
+
+	    return parseInt((t2 - t1) / (24 * 3600 * 1000));
+	}
+}
+function Initialize()
+///////////////////
+//               //
+// Initialize //
+//               //
+///////////////////
+//
+//  Come here when the body loads
+{
+// Resize things to fit in those dimensions
+    maxWindow();
+	postDate();
+	clockedIt = false;
+	maxMatches = 0;
+	totOffense = 0;
+	totDefense = 0;
+	//window.prompt(":","cancel");
+/*	var authKey = window.prompt("Enter your TBA Authentication Key", "cancel");
+	if ((authKey == null) || (authKey == "") || (authKey == "cancel"))
+	{
+		window.alert("Ending");
+		javascriptAbort();
+	} else xbtAuthKey = authKey; */
+	xbtAuthKey = "d4V33bAbuXiKfuLW1pc4BaLbr56BgiORtyM5hwmRLU5qNf6Rxh83noDdI0mPJJ3R";
+	initializeELO();
+	updateClock();
+	startELO = true;
+	depth = 0;
+	if (document.getElementById('theYear').value != null)
+	{
+		theYear = document.getElementById('theYear').value;
+		if ((theYear.length > 0) && IsNumeric(theYear)) getNextEvents();
+	}
+}
+function postDate()
+//////////////////////
+//                  //
+// Post Date //
+//                  //
+//////////////////////
+//
+//  This will place the date in the "theDate" field
+{
+var chrs = new String();
+	depth++;																									// Test
+	console.log(repeat("*",depth).concat("in postDate"));								// Test
+	thisDay = new Date();
+//	thisDay.setFullYear(2014, 2, 12);															// For testing purposes
+    chrs = document.getElementById('theDate').innerHTML;
+	var weekday = new Array("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday", "Saturday");
+	var monthname = new Array("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+    chrs = chrs.concat(weekday[thisDay.getDay()] + " ");
+    chrs = chrs.concat(thisDay.getDate() + ", ");
+    chrs = chrs.concat(monthname[thisDay.getMonth()] + " ");
+    chrs = chrs.concat(thisDay.getFullYear());
+	document.getElementById('theDate').innerHTML = chrs;
+	chrs = thisDay.getFullYear();
+	document.getElementById('theYear').value = chrs;
+//	document.getElementById('theYear').value = 2014;									// Until the season starts
+	if (localStorage.getItem("lastEvent") != null)
+	{
+		var lastEvent = localStorage.getItem("lastEvent");
+		if (lastEvent != null)
+		{
+			document.getElementById('eventName').value = lastEvent;
+			if (lastEvent.length > 0) getTeams(lastEvent);
+		}
+	}
+	console.log(repeat(depth,"*").concat("exit postDate"));							// Test
+	depth--;																									// Test
+}
+function updateClock()
+////////////////////////////
+//                        //
+// Update Clock //
+//                        //
+////////////////////////////
+//
+// This will update the tablet's time every minute and put it into "theTime" field
+{
+    var now = new Date();							 														// current time
+    var chrs = 'Time: ';
+    if (now.getHours() > 12)
+	{
+		chrs = chrs.concat(parseInt(now.getHours()) - 12 + ':');
+		if (now.getMinutes() < 10) chrs = chrs.concat('0');
+		chrs = chrs.concat(now.getMinutes()) + ' PM';
+	} else {
+		chrs = chrs.concat(now.getHours() + ':');
+		if (now.getMinutes() < 10) chrs = chrs.concat('0');
+		chrs = chrs.concat(now.getMinutes()) + ' AM';
+	}
+    document.getElementById('theTime').innerHTML = chrs;
+    // call this function again in 1000ms
+    if (!clockedIt)
+    {
+    	setTimeout(updateClock, 60000);															// Every minute
+    	clockedIt = true;
+    }
+}
+function maxWindow()
+///////////////////////////
+//                       //
+// Max Window //
+//                       //
+///////////////////////////
+//
+// This will enable a full screen display
+{
+	depth++;																							// Test
+	console.log(repeat(depth,"*").concat("in maxWindow"));					// Test
+	window.moveTo(0, 0);
+	if (document.all)
+	{
+		top.window.resizeTo(screen.availWidth, screen.availHeight);
+	} else if (document.layers || document.getElementById) {
+		if (top.window.outerHeight < screen.availHeight || top.window.outerWidth < screen.availWidth)
+		{
+                top.window.outerHeight = screen.availHeight;
+                top.window.outerWidth = screen.availWidth;
+        }
+	}
+	console.log(repeat(depth,"*").concat("exit maxWindow"));				// Test
+	depth--;																							// Test
+}
+function getNextEvents()
+//////////////////////////////////////
+//                                  //
+// Get the Next Events //
+//                                  //
+//////////////////////////////////////
+{
+// Collect the nearest coming competitions and list them in the events list
+	depth++;																								// Test
+	console.log(repeat(depth,"*").concat("in getNextEvents"));					// Test
+	var chrs = BlueAllianceURL.concat('events/');										// Getting the list of events
+	var elem = document.getElementById('theYear');
+	if (elem.value == null)
+	{
+		issueError('No year', false);
+	} else {
+		thisYear = elem.value;
+//		thisDay.setFullYear(thisYear, thisDay.getMonth(), thisDay.getDate());
+		chrs = chrs.concat(thisYear);															// For this year
+//		chrs = chrs.concat(xbtAPP_ID);
+		chrs = chrs.concat(xbtAuthID);														// App ID header
+		chrs = chrs.concat(xbtAuthKey);														// Authentication Key (version 3)
+		issueRequestHTTP("GET", chrs, function(result)
+		{
+			eventsHaveBeenDownloaded(result);
+		});
+	}
+	console.log(repeat(depth,"*").concat("exit getNextEvents"));				// Test
+	depth--;																								// Test
+}
+function eventsHaveBeenDownloaded(contents)
+/////////////////////////////////////////////////////////
+//                                                     //
+// Events Have Been Downloaded //
+//                                                     //
+/////////////////////////////////////////////////////////
+//
+// Collect all the events and pick those within the 6 days ago thru next 2 weeks (including the 6 previous days) window
+{
+DaysAgo = 6;																							// # of days prior to today
+	var i, j;
+	var mon, day, yr;																					// Calendar variables
+	depth++;																								// Test
+	console.log(repeat(depth,"*").concat("in eventsHaveBeenDownloaded"));		// Test
+	var parsed = JSON.parse(contents);
+	var startDate = new Date();
+	var sixDaysAgo = new Date();
+	var sel = document.getElementById('eventName');							// Select list
+	sixDaysAgo.setFullYear(thisYear, thisDay.getMonth(), thisDay.getDate() - DaysAgo);	// 6 days ago
+//	var chr = thisMonth.concat("/");															// Test
+//	chr = chr.concat(thisDay.concat("/"));													// Test
+//	document.write(chr.concat(thisYear));													// Test
+//	issueError(chr.concat(thisYear));															// Test
+	for (i=0; i<parsed.length; i++)
+	{
+		if (parsed[i].year == thisYear)
+		{
+			yr = parseInt(parsed[i].start_date.substring(0, 4));						// Year
+			mon = parseInt(parsed[i].start_date.substring(5, 7));					// Month
+			day = parseInt(parsed[i].start_date.substring(8, 10));					// Day
+			startDate = new Date(yr, mon - 1, day);
+			startDate.setHours(0, 0, 0, 0);
+			if ((startDate >= sixDaysAgo) && (DateDiff.inDays(thisDay, startDate) < 15))	// Within 2 weeks?
+			{
+				if ((sel.options.length == 0) || (sel.options[0] == null))
+				{
+					sel.options[0] = new Option(parsed[i].key, 0, true);
+					sel.options[0].innerHTML = parsed[i].key;
+					sel.value = parsed[i].key;
+				} else if ((sel.options[0].innerHTML == null) || (sel.options[0].innerHTML == '         ') || (sel.options[0].value == '')) {
+					sel.options[0].value = 0;
+					sel.options[0].innerHTML = parsed[i].key;
+					sel.value = parsed[i].key;
+				} else {
+					opt = document.createElement('option');
+					opt.value = j;
+					opt.innerHTML = parsed[i].key;											// Include the Blue Alliance event key
+					sel.appendChild(opt);
+				}																								// Not 1st option block
+				j++;
+			}																									// Within 2 weeks block
+		}
+	}
+//
+//      Code for World Champs
+//
+//	if ((sel.options.lenth == 0) || (sel.options[0] == null))
+//	{
+//		var worldChamps = new Date();
+//		worldChamps.setFullYear(thisYear, 3, 22);										// About when World Champs start
+//		if ((worldChamps >= threeDaysAgo) && (DateDiff.inDays(thisDay, worldChamps) < 15))
+//		{
+//			var fields = new Array('arc','cars','carv','cur','gal','hop','new','tes');
+//			sel.options[0] = new Option(fields[0], true);
+//			sel.options[0].innerHTML = fields[0];
+//			sel.options[0].value = 0;
+//			sel.value = fields[0];
+//			for (i=1; i<fields.length; i++)
+//			{
+//				opt = document.createElement('option');
+//				opt.value = i;
+//				opt.innerHTML = fields[i];
+//				sel.appendChild(opt);
+//			}
+//		}
+//	}
+// Ran before?  Get what was there before ...
+	if (localStorage.getItem("lastEvent") != null)
+	{
+		var lastEvent = localStorage.getItem("lastEvent");
+// Need to see if this one is in the list
+/*		for (i=0; i<sel.options.length; i++) if (sel.options[i] == lastEvent) break;
+		if (i < sel.options.length) sel.value = lastEvent;   */
+	}
+	console.log(repeat(depth,"*").concat("exit eventsHaveBeenDownloaded"));	// Test
+	depth--;																										// Test
+}
+function assignEvent()
+//////////////////////////
+//                      //
+// Assign Event //
+//                      //
+//////////////////////////
+{
+var elem;
+	depth++;																											// Test
+	console.log(repeat(depth,"*").concat("in assignEvent"));								// Test
+	elem = document.getElementById('txtEvent');	issueError(elem.text, false);							// Test
+	if (elem.value != null)
+	{
+		var sel = document.getElementById('eventName');									// Select list
+		if ((sel.options[0].innerHTML == null) || (sel.options[0].innerHTML == '         ') || (sel.options[0].value == '')) {
+			sel.options[0].value = 0;
+			sel.options[0].innerHTML = elem.value;
+			sel.value = elem.value;
+		} else {
+			opt = document.createElement('option');
+			opt.value = sel.options.length;
+			opt.innerHTML = elem.value;																	// Include the Blue Alliance event key
+			sel.appendChild(opt);
+		}																													// Not 1st option block
+	}
+	console.log(repeat(depth,"*").concat("exit assignEvent"));								// Test
+	depth--;																											// Test
+}
+function extractSchedule()
+/////////////////////////////////
+//                             //
+// Extract Schedule //
+//                             //
+/////////////////////////////////
+{
+	included = 0;																									// Initialize # of matches the team is in
+	depth++;																											// Test
+	console.log(repeat(depth,"*").concat("in extractSchedule"));							// Test
+	var elem = document.getElementById('teams');
+	teamNo = parseInt(elem.options[elem.selectedIndex].text);							// Get the team number we want to look for
+//	console.log('extract schedule');																		// Test
+	if (eventName == null)
+	{
+		var eventID = document.getElementById('eventName');
+		eventName = eventID.options[eventID.selectedIndex].text;						// For what event key
+	}
+//	console.log("Event: " + eventName);																// Test
+	localStorage.setItem("lastSetTeam",eventName); 											// Set last selected index
+	if ((teamNo == null) || (teamNo.length < 1))
+		{issueError("No team number", false);}
+	else if ((eventName == null) || (eventName.length < 1))
+	{
+		issueError("No event name", false);
+	}
+	else
+	{
+		elem = document.getElementById('tblTeams');
+		if (elem.rows.length > 1) clearScreen();
+		var chrs = BlueAllianceURL.concat('event/');
+		chrs = chrs.concat(eventName);
+		chrs = chrs.concat('/matches');
+//		chrs = chrs.concat(xbtAPP_ID);
+		chrs = chrs.concat(xbtAuthID);															// Blue alliance insists on an app ID
+		chrs = chrs.concat(xbtAuthKey);																	// Authentication Key (version 3)
+//		console.log(chrs);																						// Test
+//			xmlHTTP.setRequestHeader('X-TBA-App-Id', '1983:QA_Scouting:v1');
+//			HTMLHasBeenRead(result);																	// Test
+//			issueError('HTTP request success', true);												// Test
+		issueRequestHTTP("GET", chrs, function(result)
+		{
+			scheduleHasBeenDownloaded(result);
+		});
+	}
+	console.log(repeat(depth,"*").concat("exit extractSchedule"));						// Test
+	depth--;																											// Test
+}
+function scheduleHasBeenDownloaded(contents)
+///////////////////////////////////////////////////////////
+//                                                       //
+// Schedule Has Been Downloaded //
+//                                                       //
+///////////////////////////////////////////////////////////
+//
+//  Parse the JSON contents
+{
+	var i; var j; var k; var l; var m; var mtch;
+	depth++;																											// Test
+	console.log(repeat(depth,"*").concat("in scheduleHasBeenDownloaded"));	// Test
+	var parsed = JSON.parse(contents);
+	var table = document.getElementById('tblTeams');
+	var alliance; var member;
+	var redScore, blueScore;																					// Red & blue scores
+	var teamRed = new Int16Array(3);																	// Red alliance memebers
+	var teamBlue = new Int16Array(3);																	// Blue alliance members
+	var won; var lost; var tied; var noScore;															// Score tabulators
+	var newRow; var sell;																						// Table rows & cells
+	totOffense = 0;																									// For offense average calc
+	totDefense = 0;																								// For defense average calc
+	won = 0;
+	lost = 0;
+	tied = 0;
+	rankPts = 0;
+	abort = false;
+	tempXs = new Array(teamSpecs.length * teamSpecs.length);
+	Ys = new Int16Array(teamSpecs.length);
+	Ds = new Int16Array(teamSpecs.length);
+	CCWMs = new Int16Array(teamSpecs.length);
+	for (i=0; i<teamSpecs.length; i++)
+	{
+		Ys[i] = 0;
+		Ds[i] = 0;
+//		CCWMs[i] = 0;
+		for (j=0; j<teamSpecs.length; j++) tempXs[i * teamSpecs.length + j] = 0;
+	}
+	if (included > 0)
+	{
+		clearScreen(included);
+		included = 0;
+	}
+	if (startELO)
+	{
+		var redELOs = 0;																							// Red ELO accumulator
+		var bluELOs = 0;																							// Blue ELO accumulator
+	}
+	if (parsed.length < 1)
+	{
+		issueError("No schedule available", false);
+	} else {
+		mType = ["qm","qf","sf","f"]
+		for (m=0; m<mType.length; m++)
+		{
+			for (j=0; j<parsed.length; j++)
+			{
+				if (parsed[j].comp_level == mType[m])
+				{
+					alliance = parsed[j].alliances.red;
+					mtch = Number(parsed[j].match_number);
+//					issueError(String('Match: ').concat(mtch), true);										// Test
+					if (mtch > maxMatches) maxMatches = mtch;
+					l = alliance.team_keys[0].length;
+					teamRed[0] = alliance.team_keys[0].substring(3,l);
+					check4Team(teamRed[0]);
+					l = alliance.team_keys[1].length;
+					teamRed[1] = alliance.team_keys[1].substring(3,l);
+					check4Team(teamRed[1]);
+					l = alliance.team_keys[2].length;
+					teamRed[2] = alliance.team_keys[2].substring(3,l);
+					alliance = parsed[j].alliances.blue;
+					check4Team(teamRed[2]);
+					l = alliance.team_keys[0].length;
+					teamBlue[0] = alliance.team_keys[0].substring(3,l);
+					check4Team(teamBlue[0]);
+					l = alliance.team_keys[1].length;
+					teamBlue[1] = alliance.team_keys[1].substring(3,l);
+					check4Team(teamBlue[1]);
+					l = alliance.team_keys[2].length;
+					teamBlue[2] = alliance.team_keys[2].substring(3,l);
+					check4Team(teamBlue[2]);
+					member = false;
+					noScore = false;
+					if ((parsed[j].alliances.red.score != null) || (parsed[j].alliances.blue.score != null))
+					{
+						if (parsed[j].alliances.red.score > -1)
+						{
+							redScore = parsed[j].alliances.red.score;
+							if (parsed[j].alliances.blue.score == null)
+							{
+								blueScore = 0;
+							} else blueScore = parsed[j].alliances.blue.score;
+							enterOPR(teamRed[0], teamRed[1], teamRed[2], redScore, blueScore);
+						} else noScore = true;
+						if (parsed[j].alliances.blue.score > -1)
+						{
+							blueScore = parsed[j].alliances.blue.score;
+							if (parsed[j].alliances.red.score == null)
+							{
+								redScore = 0;
+							} else redScore = parsed[j].alliances.red.score;
+							enterOPR(teamBlue[0], teamBlue[1], teamBlue[2], blueScore, redScore);
+						} else noScore = true;
+					} else noScore = true;
+					if (startELO)
+					{
+						for (i = 0; i < 3; i++)
+						{
+							redELOs += getELORank(teamRed[i]);
+							bluELOs += getELORank(teamBlue[i]);
+							if (teamRed[i] == teamNo) member = true;
+							if (teamBlue[i] == teamNo) member = true;
+						}
+						if (!noScore) upELORank(redELOs / 3., bluELOs / 3., teamRed, teamBlue, redScore, blueScore, ELOFactor);
+					}
+					if (member)
+					{
+						included++;
+						i = table.rows.length;
+						if (i == 1)
+						{
+							newRow = table.rows[0];
+							for (k=1; k<9; k++) newRow.cells[k].style.borderRadius = 0;
+							if (newRow.cells[0].innerHTML == ' ')
+							{
+								newRow = table.rows[0];
+							} else {
+								newRow = table.insertRow(i);
+								if (i % 2 == 0) newRow.style.backgroundColor = GREY;
+								newRow.align = "center";
+								for (k=0; k<9; k++)
+								{
+									sell = newRow.insertCell(k);
+									switch(k)
+									{
+										case 0: // sell.addEventListener("click", function() { getMatchSpecs(1) });
+													sell.addEventListener("click", function() { appMatchSpecs(this.innerHTML) });
+												break;
+										case 1: break;
+										case 2: break;
+										case 3: break;
+										case 7: sell.style.border = "SOLID RED";
+												break;
+										case 4: break;
+										case 5: break;
+										case 6: break;
+										case 8: sell.style.border = "SOLID BLUE";
+												break;
+									}
+								}
+							}
+						} else {																										// End first table row
+							newRow = table.insertRow(i);
+							if (i % 2 == 0) newRow.style.backgroundColor = GREY;
+							newRow.align = "center";
+							for (k=0; k<9; k++)
+							{
+								sell = newRow.insertCell(k);
+								switch(k)
+								{
+									case 0: /* if (i == 2) sell.addEventListener("click", function() { getMatchSpecs(2) });
+												if (i == 3) sell.addEventListener("click", function() { getMatchSpecs(3) });
+												if (i == 4) sell.addEventListener("click", function() { getMatchSpecs(4) });
+												if (i == 5) sell.addEventListener("click", function() { getMatchSpecs(5) });
+												if (i == 6) sell.addEventListener("click", function() { getMatchSpecs(6) });
+												if (i == 7) sell.addEventListener("click", function() { getMatchSpecs(7) });
+												if (i == 8) sell.addEventListener("click", function() { getMatchSpecs(8) });
+												if (i == 9) sell.addEventListener("click", function() { getMatchSpecs(9) });
+												if (i == 10) sell.addEventListener("click", function() { getMatchSpecs(10) });
+												if (i == 11) sell.addEventListener("click", function() { getMatchSpecs(11) });
+												if (i == 12) sell.addEventListener("click", function() { getMatchSpecs(12) });
+												if (i == 13) sell.addEventListener("click", function() { getMatchSpecs(13) });
+												if (i == 14) sell.addEventListener("click", function() { getMatchSpecs(14) });
+												if (i == 15) sell.addEventListener("click", function() { getMatchSpecs(15) }); */
+												sell.addEventListener("click", function() { appMatchSpecs(this.innerHTML) });
+												break;
+									case 1: break;
+									case 2: break;
+									case 3: break;
+									case 7: sell.style.border = "SOLID RED";
+												break;
+									case 4: break;
+									case 5: break;
+									case 6: break;
+									case 8: sell.style.border = "SOLID BLUE";
+												break;
+								}
+							}
+						}
+						newRow.cells[0].innerHTML = mtch;
+						if (parsed[j].comp_level != "qm") newRow.cells[0].innerHTML = parsed[j].key.substring(parsed[j].key.length-5,parsed[j].key.length);
+						newRow.cells[1].innerHTML = teamRed[0];
+						if (teamRed[0] == teamNo)
+						{
+							newRow.cells[1].style.color = YELLOW;
+							newRow.cells[1].style.borderRadius = "1em";
+							if (!noScore)
+							{
+								totOffense += redScore;
+								totDefense += blueScore;
+								newRow.cells[7].innerHTML = redScore;
+								newRow.cells[8].innerHTML = blueScore;
+								if (redScore > blueScore)
+								{
+									won++;
+									newRow.cells[7].style.textDecoration = "underline";
+									newRow.cells[8].style.textDecoration = "none";
+								} else if (blueScore > redScore) {
+									lost++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "none";
+								} else {
+									tied++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "none";
+								}
+							}
+						}																											// End red team0 match
+						else newRow.cells[1].style.color = BLACK;
+						newRow.cells[2].innerHTML = teamRed[1];
+						if (teamRed[1] == teamNo)
+						{
+							newRow.cells[2].style.color = YELLOW;
+							newRow.cells[2].style.borderRadius = "1em";
+							if (!noScore)
+							{
+								totOffense += redScore;
+								totDefense += blueScore;
+								if (redScore > blueScore)
+								{
+									won++;
+									newRow.cells[7].style.textDecoration = "underline";
+									newRow.cells[8].style.textDecoration = "none";
+								} else if (blueScore > redScore)
+								{
+									lost++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "none";
+								} else
+								{
+									tied++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "none";
+								}
+							}
+						} else newRow.cells[2].style.color = BLACK;										// End red team1 match
+						newRow.cells[3].innerHTML = teamRed[2];
+						if (teamRed[2] == teamNo)
+						{
+							newRow.cells[3].style.color = YELLOW;
+							newRow.cells[3].style.borderRadius = "1em";
+							if (!noScore)
+							{
+								totOffense += redScore;
+								totDefense += blueScore;
+								if (redScore > blueScore)
+								{
+									won++;
+									newRow.cells[7].style.textDecoration = "underline";
+									newRow.cells[8].style.textDecoration = "none";
+								}
+								else if (blueScore > redScore)
+								{
+									lost++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "none";
+								} else
+								{
+									tied++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "none";
+								}
+							}
+						} else newRow.cells[3].style.color = BLACK;											// End red team2 match
+						newRow.cells[4].innerHTML = teamBlue[0];
+						if (teamBlue[0] == teamNo)
+						{
+							newRow.cells[4].style.color = YELLOW;
+							newRow.cells[4].style.borderRadius = "1em";
+							if (!noScore)
+							{
+								totOffense += blueScore;
+								totDefense += redScore;
+								if (blueScore > redScore)
+								{
+									won++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "underline";
+								}
+								else if (redScore > blueScore)
+								{
+									lost++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "none";
+								} else
+								{
+									tied++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "none";
+								}
+							}
+						} else newRow.cells[4].style.color = BLACK;											// End blue team0 match
+						newRow.cells[5].innerHTML = teamBlue[1];
+						if (teamBlue[1] == teamNo)
+						{
+							newRow.cells[5].style.color = YELLOW;
+							newRow.cells[5].style.borderRadius = "1em";
+							if (!noScore)
+							{
+								totOffense += blueScore;
+								totDefense += redScore;
+								if (blueScore > redScore)
+								{
+									won++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "underline";
+								} else if (redScore > blueScore)
+								{
+									lost++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "none";
+								} else
+								{
+									tied++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "none";
+								}
+							}
+						} else newRow.cells[5].style.color = BLACK;											// End blue team1 match
+						newRow.cells[6].innerHTML = teamBlue[2];
+						if (teamBlue[2] == teamNo)
+						{
+							newRow.cells[6].style.color = YELLOW;
+							newRow.cells[6].style.borderRadius = "1em";
+							if (!noScore)
+							{
+								totOffense += blueScore;
+								totDefense += redScore;
+								if (blueScore > redScore)
+								{
+									won++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "underline";
+								} else if (redScore > blueScore)
+								{
+									lost++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "none";
+								} else
+								{
+									tied++;
+									newRow.cells[7].style.textDecoration = "none";
+									newRow.cells[8].style.textDecoration = "none";
+								}
+							}
+						} else newRow.cells[6].style.color = BLACK;												// Member block
+						if (!noScore)
+						{
+							if (redScore > -1) newRow.cells[7].innerHTML = redScore;
+							newRow.cells[7].style.color = RED;
+							if (blueScore > -1) newRow.cells[8].innerHTML = blueScore;
+							newRow.cells[8].style.color = BLUE;
+						}																													// Score posted block
+					}																														// Qualification match
+				}																															// All parsed contents
+			}
+		}																																	// All match types
+		sortTable('tblTeams');																									// Sort the table in match order
+		addTabs();																													// Add tabs so contents are separated by 'tabs'.
+		document.getElementById('won').innerHTML = 'WON: ' + won;
+		document.getElementById('lost').innerHTML = 'LOST: ' + lost;
+		document.getElementById('tied').innerHTML = 'TIED: ' + tied;
+		document.getElementById('avgOff').innerHTML = 'AVG. OFF: ' + (totOffense.toFixed(2) / (won + lost + tied).toFixed(2)).toPrecision(6);
+		document.getElementById('avgDef').innerHTML = 'DEF: ' + (totDefense.toFixed(2) / (won + lost + tied).toFixed(2)).toPrecision(6);
+		document.getElementById('elo').innerHTML = 'ELO: ' + getELORank(teamNo).toPrecision(6);
+		solveOPRMatrix();
+		document.getElementById('opr').innerHTML = 'OPR: ' + getOPR(teamNo).toPrecision(6);
+		document.getElementById('dpr').innerHTML = 'DPR: ' + getDPR(teamNo).toPrecision(6);
+		document.getElementById('ccwm').innerHTML = 'CCWM: ' + getCCWM(teamNo).toPrecision(6);
+		document.getElementById('aWar').innerHTML = 'aWAR: ' + calcAWAR(teamNo).toPrecision(6);
+		retrieveRank();
+		startELO = false;																											// Only calculate when year or event changes
+		getMatchSpecs(0);																										// Test
+	}																																		// Schedules available block
+	console.log(repeat(depth,"*").concat("exit scheduleHasBeenDownloaded"));				// Test
+	depth--;																															// Test
+}
+function getFromFile()
+////////////////////////////
+//                        //
+// Get From File //
+//                        //
+////////////////////////////
+{
+	var i; var mtch;
+	mtch = 0;
+	var fileWindow = document.getElementById('fileWindow');
+	fileWindow.style.visibility = "visible";																				// Show it until we read
+	var fileInput = document.getElementById('fileInput');
+	var fileDisplayArea = document.getElementById('fileDisplayArea');
+	fileInput.addEventListener('change', function(e)
+	{
+		var file = fileInput.files[0];
+		var textType = "";
+//		console.log(file.type);																									// Test
+//		issueError(file.type, false);																							// Test
+		if (file.type.match(textType))
+		{
+			var reader = new FileReader();
+
+			reader.onload = function(e)
+			{
+				var eachLine = reader.result.split('\n');
+				var infoArray = new Array(eachLine.length);
+				mtch = eachLine.length;
+				for (i=0; i<mtch; i++)
+				{
+					infoArray[i] = new Array(eachLine.split('\t').length);
+					infoArray[i] = eachLine.split('\t');
+				}
+			}
+			reader.readAsText(file);
+		} else {
+			fileDisplayArea.innerText = "File not supported!";
+		}
+	});
+	fileWindow.style.visibility = "hidden";																				// Rehide it
+	if (mtch>0)
+	{
+		for (i=0; i<mtch; i++)
+		{
+			check4Team(infoArray[i,2]);
+			check4Team(inforArray[i,3]);
+			check4Team(infoArray[i,4]);
+			enterOPR(infoArray[i,2], inforArray[i,3], infoArray[i,4], infoArray[i,5], infoArray[i,6]);
+		}
+	}
+}
+function issueRequestHTTP(reqType, URL, callback)
+////////////////////////////////////////////////////////////
+//                                                        //
+// Issue Request via HTTP Request //
+//                                                       //
+///////////////////////////////////////////////////////////
+//
+//  All HTTP communication processed here
+{
+	var xhr = new XMLHttpRequest();
+	xhr.onload = function (e)
+	{
+		if (xhr.readyState == 4)
+		{
+			if (xhr.status == 200)
+			{
+				if (xhr.responseText == "Not found")
+				{
+					issueError(' Not found.', false);
+				} else {
+					callback(xhr.responseText);
+				}
+			} else {
+				issueError(' HTTP returns ' + xhr.status, false);
+			}
+		} else issueError(String(' ').concat(xhr.readyState), false);										// Test
+	};
+	xhr.open(reqType, URL, true);
+//	xhr.timeout = timeout;
+	xhr.send(null);
+	xhr.onerror = function (e)
+	{
+		issueError(xhr.statusText, false);
+		console.log(xhr.statusText);																						// Test
+	}
+//	xhr.abort();
+}
+function getTeams(teamVal)
+///////////////////////
+//                   //
+// Get Teams //
+//                   //
+///////////////////////
+//
+// With Year and Event known, collect all teams for that event and fill selection list
+{
+	var elem;
+	var thisYear;
+	var myEvent;
+	depth++;																														// Test
+	console.log(repeat(depth,"*").concat("in getTeams"));												// Test
+	thisYear = document.getElementById('theYear').value;
+	elem = document.getElementById('eventName');
+	myEvent = String("Event=").concat(elem.Value);														// Test
+	issueError(myEvent, false);																							// Test
+	if (elem.value != '')
+	{
+		if ((elem.selectedIndex != null) && (typeof elem.selectedIndex != 'undefined'))
+		{
+			if (typeof elem.options[elem.selectedIndex].innerHTML != 'undefined')
+							myEvent = elem.options[elem.selectedIndex].innerHTML;
+			else myEvent = elem.value;
+		} else myEvent = elem.value;
+		if (myEvent == null) myEvent = eventName;
+		if ((myEvent != null) && (typeof myEvent != 'undefined'))
+		{
+			var chrs = BlueAllianceURL.concat('event/');
+			chrs = chrs.concat(myEvent);
+			chrs = chrs.concat('/teams');
+//			chrs = chrs.concat(xbtAPP_ID);
+			chrs = chrs.concat(xbtAuthID);																	// Blue alliance insists on an app ID
+			chrs = chrs.concat(xbtAuthKey);																			// Authentication Key (version 3)
+//			console.log(chrs);																								// Test
+//				xmlHTTP.setRequestHeader('X-TBA-App-Id', '1983:QA_Scouting:v1');			// Test
+//				xmlHTTP.setRequestHeader('X-TBA-App-Id', '1983:QA_Scouting:v3');			// Test
+//				issueError(chrs, false);																					// Test
+			issueRequestHTTP("GET", chrs, function(result)
+			{
+				teamsHaveBeenDownloaded(result);
+			});
+		} else {
+			localStorage.setItem("lastEvent", myEvent);														// Default event name
+			if ((thisYear == null) || (typeof thisYear == 'undefined') || (thisYear.length < 1))
+			{
+				issueError("No year", false);
+
+			} else if (myEvent.length < 1) {
+				issueError("No event name", false);
+			} else {
+				eventName = thisYear.concat(myEvent);														// Blue Alliance event key
+				localStorage.setItem("BlueAllianceEvent", eventName);
+				var chrs = BlueAllianceURL.concat('event/');
+				chrs = chrs.concat(eventName);
+				chrs = chrs.concat('/teams');
+//				chrs = chrs.concat(xbtAPP_ID);
+				chrs = chrs.concat(xbtAuthID);																		// Blue alliance insists on an app ID
+				chrs = chrs.concat(xbtAuthKey);																		// Authentication Key (version 3)
+//				console.log(chrs);																							// Test
+//				xmlHTTP.setRequestHeader('X-TBA-App-Id', '1983:QA_Scouting:v1');			// Test
+//				xmlHTTP.setRequestHeader('X-TBA-App-Id', '1983:QA_Scouting:v3');			// Test
+//				issueError(chrs, false);																					// Test
+				issueRequestHTTP("GET", chrs, function(result)
+				{
+					teamsHaveBeenDownloaded(result);
+				});
+			}
+		}
+	}
+	console.log(repeat(depth,"*").concat("exit getTeams"));												// Test
+	depth--;																														// Test
+}
+
+function teamsHaveBeenDownloaded(contents)
+////////////////////////////////////////////////////////
+//                                                    //
+// Teams Have Been Downloaded //
+//                                                    //
+////////////////////////////////////////////////////////
+{
+	var i; var opt;
+	depth++;																														// Test
+	console.log(repeat(depth,"*").concat("in teamsHaveBeenDownloaded"));					// Test
+	var sel = document.getElementById('teams');
+	if (sel != null)
+	{
+		var parsed = JSON.parse(contents);
+		removeOptions(sel);
+		var teamArray = new Int16Array(parsed.length);
+		for (i = 0; i < parsed.length; i++)
+		{
+			teamArray[i] = parseInt(parsed[i].team_number);
+		}
+		sortTeams(teamArray);																								// So the user can scan thru them
+//
+//  Add teams to the list
+//
+		for (i = 0; i < parsed.length; i++)
+		{
+			opt = document.createElement('option');
+			opt.value = i;
+			opt.innerHTML = teamArray[i];
+			sel.appendChild(opt);
+			if (i == 0)
+			{
+				teamSpecs[0].num = teamArray[0];
+				teamSpecs[0].eloRank = ELOBase;
+			} else check4Team(teamArray[i]);
+		}
+//
+//  Get team used last time
+//
+		if (localStorage.getItem("lastSetTeam") != null)
+		{
+			sel.selectedIndex = localStorage.getItem("lastSetTeam");
+			if (localStorage.getItem("lastSetTeam").length > 0)
+			{
+				sel.selectedIndex = localStorage.getItem("lastSetTeam");
+//			extractSchedule();
+			}
+		}																																	// Default team found
+		initializeTotals();
+	}																																		// Team list not null
+	console.log(repeat(depth,"*").concat("exit teamsHaveBeenDownloaded"));					// Test
+	depth--;																															// Test
+}
+function retrieveRank()
+//////////////////////////////////////
+//                                  //
+// Retrieve Team Rank //
+//                                  //
+//////////////////////////////////////
+//
+//  We'll use the Blue Alliance's rankings
+{
+	if ((teamNo == null) || (teamNo.length < 1))
+		{issueError("No team number", false);}
+	else if ((eventName == null) || (eventName.length < 1))
+		{issueError("No event name", false);}
+	else
+	{
+		var chrs = BlueAllianceURL.concat('team/frc');
+		chrs = chrs.concat(teamNo);
+		chrs = chrs.concat("/event/");
+		chrs = chrs.concat(eventName);
+		chrs = chrs.concat('/status');
+//		chrs = chrs.concat(xbtAPP_ID);
+		chrs = chrs.concat(xbtAuthID);
+		chrs = chrs.concat(xbtAuthKey);																					// Authentication Key (version 3)
+//		console.log(chrs);																										// Test
+		issueRequestHTTP("GET", chrs, function(result)
+		{
+			rankingsHaveBeenDownloaded(result);
+		});
+	}
+}
+function rankingsHaveBeenDownloaded(content)
+/////////////////////////////////////////////////////////////
+//                                                         //
+// Rankings Have Been Downloaded //
+//                                                         //
+/////////////////////////////////////////////////////////////
+{
+	var i;
+	depth++;																												// Test
+	console.log(repeat(depth,"*").concat("in rankingsHaveBeenDownloaded"));		// Test
+	var parsed = JSON.parse(content);
+	{
+		var elem = document.getElementById('rank');
+		elem.innerHTML = String('RANK: ').concat(parsed.qual.ranking.rank);
+		elem = document.getElementById('rankPoints');
+		var rPoints = parsed.qual.ranking.matches_played * parsed.qual.ranking.sort_orders[0];
+		elem.innerHTML = String('Rank Pt.s: ').concat(Math.floor(rPoints + .5));
+	}
+	console.log(repeat(depth,"*").concat("exit rankingsHaveBeenDownloaded"));	// Test
+	depth--;																												// Test
+}
+function issueError(theMsg, cleer)
+////////////////////////////
+//                        //
+// Issue an Error //
+//                        //
+////////////////////////////
+//
+//  This will print an error message on the screen at the bottom.
+{
+	var msg = document.getElementById('errorMsg');
+	if (cleer)
+	{
+		var chrs = 'Error: ';
+	} else var chrs = msg.innerHTML;
+	chrs = chrs.concat(theMsg);
+	msg.innerHTML = chrs;
+	msg.style.color = RED;
+	msg.style.visibility = 'visible';
+}
+function clearScreen(lines)
+///////////////////////////
+//                       //
+// Clear Screen //
+//                       //
+///////////////////////////
+//
+//  Actually, just clears the table
+{
+	var i;
+	var table = document.getElementById('tblTeams');
+	var rowCount = table.rows.length - 1;
+	for (i=rowCount; i>0; i--) table.deleteRow(i);
+	rowCount = table.rows[0].cells.length;
+	for (i=0; i<rowCount; i++) table.rows[0].cells[i].innerHTML = ' ';
+}
+function sortTable(tblName)
+//////////////////////
+//                  //
+// Sort Table //
+//                  //
+///////////////////////
+//
+//  This will sort the table, 'tblName', in the first cell order
+{
+	var i;
+	var len;
+	var row;
+	var sortnr;
+    var tbl = document.getElementById(tblName).tBodies[0];
+    var store = [];
+    len = tbl.rows.length;
+    for(i=0; i<len; i++)
+    {
+        row = tbl.rows[i];
+        sortnr = parseFloat(row.cells[0].textContent || row.cells[0].innerText);
+        if (IsNumeric(sortnr)) store.push([sortnr, row]);
+    }
+    store.sort(function(x,y)
+    {
+        return x[0] - y[0];
+    });
+    len = store.length;
+    for (i=0; i<len; i++) tbl.appendChild(store[i][1]);
+
+    store = null;
+//
+//  Problem:  As we swap the rows, so are the background colors swapped.
+//  Go back and redo those.
+//
+	len = tbl.rows.length;
+	for (i=0; i<len; i++)
+	{
+		if (i%2 == 0) tbl.rows[i].style.backgroundColor = GREY;
+		else tbl.rows[i].style.backgroundColor = WHITE;
+	}
+}
+function sortTeams(teams)
+////////////////////////
+//                    //
+// Sort Teams //
+//                    //
+////////////////////////
+//
+//  This will bubble sort the integer array, "teams"
+//  Note: The original "teams" will be destroyed
+{
+	var i, j, k; var temp; var swapped;
+	swapped = true;
+	j = 0;
+	while (swapped)
+	{
+		swapped = false;
+		j++;
+		for (i = 0; i < teams.length - j; i++)
+		{
+			k = i + 1;
+			if (teams[k] < teams[i])
+			{
+				swapped = true;
+				temp = teams[k];
+				teams[k] = teams[i];
+				teams[i] = temp;
+			}
+		}
+	}
+}
+function mInvert(M)
+/////////////////////////
+//                     //
+// Matrix Invert //
+//                      //
+//////////////////////////
+{
+/* Using the Guassian Elimination to calculate the inverse:
+	(1) 'augment' the matrix (left) by the identity (on the right)
+	(2) Turn the matrix on the left into the identity by elemetry row ops
+	(3) The matrix on the right is the inverse (was the identity matrix)
+	There are 3 elemtary row ops: (I combine b and c in my code)
+		(a) Swap 2 rows
+		(b) Multiply a row by a scalar
+		(c) Add 2 rows
+*/
+	abort = false;
+	if ((M == null) || (typeof M == 'undefined'))
+	{
+		issueError('Matrix does not exist', false);
+		abort = true;
+		return;
+	} else if ((typeof M.length == 'undefined') || (typeof M[0].length == 'undefined')) {
+		issueError('Matrix is empty', false);
+		abort = true;
+		return;
+	}
+// If the matrix isn't square: exit (error)
+	else if (M.length !== M[0].length)
+	{
+		document.write('M.length=');																					// Test
+		document.write(M.length);																						// Test
+		document.write('M[0].length=');																				// Test
+		document.write(M[0].length);																					// Test
+		document.write('<BR>');																							// Test
+		abort = true;
+		return;
+	}
+
+//	Create the identity matrix (I), and a copy (C) of the original
+	var i=0, ii=0, j=0, dim=M.length, e=0, t=0;
+	var I = new Array(M.Length), C = new Array(M.length);
+	for(i=0; i<dim; i+=1)
+	{
+	// Create the row
+		I[i]=[];
+		C[i]=[];
+		for (j=0; j<dim; j+=1)
+		{
+
+    // If we're on the diagonal, put a 1 (for identity)
+        	if (i == j)
+        	{
+        		I[i][j] = 1;
+        	}
+        	else { I[i][j] = 0; }
+
+    // Also, make the copy of the original
+        C[i][j] = M[i][j];
+        }
+    }
+
+    // Perform elementary row operations
+    for (i=0; i<dim; i+=1)
+    {
+        // get the element e on the diagonal
+        e = C[i][i];
+
+        // if we have a 0 on the diagonal (we'll need to swap with a lower row)
+        if (e == 0)
+        {
+        //look through every row below the i'th row
+            for (ii=i+1; ii<dim; ii+=1)
+            {
+                // If the ii'th row has a non-0 in the i'th col
+                if (C[ii][i] != 0)
+                {
+                // It would make the diagonal have a non-0 so swap it
+                    for(j=0; j<dim; j++)
+                    {
+                        e = C[i][j];       																	// temp store i'th row
+                        C[i][j] = C[ii][j];																	// replace i'th row by ii'th
+                        C[ii][j] = e;      																	// replace ii'th by temp
+                        e = I[i][j];       																	// temp store i'th row
+                        I[i][j] = I[ii][j];																		// replace i'th row by ii'th
+                        I[ii][j] = e;      																	// replace ii'th by temp
+                    }
+                //don't bother checking other rows since we've swapped
+                    break;
+                }
+            }
+            //get the new diagonal
+            e = C[i][i];
+            //if it's still 0, not invertable (error)
+            if (e == 0)
+            {
+            	abort = true;
+            	return;
+            }
+        }
+
+        // Scale this row down by e (so we have a 1 on the diagonal)
+        for (j=0; j<dim; j++)
+        {
+            C[i][j] = C[i][j] / e; 					//apply to original matrix
+            I[i][j] = I[i][j] / e; 					//apply to identity
+        }
+        //
+        // Subtract this row (scaled appropriately for each row) from ALL of
+        // the other rows so that there will be 0's in this column in the
+        // rows above and below this one
+        //
+        for(ii=0; ii<dim; ii++)
+        {
+            // Only apply to other rows (we want a 1 on the diagonal)
+            if (ii == i) {continue;}
+
+            // We want to change this element to 0
+            e = C[ii][i];
+
+            // Subtract (the row above(or below) scaled by e) from (the
+            // current row) but start at the i'th column and assume all the
+            // stuff left of diagonal is 0 (which it should be if we made this
+            // algorithm correctly)
+            for (j=0; j<dim; j++)
+            {
+                C[ii][j] -= e*C[i][j]; 				//apply to original matrix
+                I[ii][j] -= e*I[i][j]; 				//apply to identity
+            }
+        }
+    }
+
+    //we've done all operations, C should be the identity
+    //matrix I should be the inverse:
+    return I;
+}
+function  solveOPRMatrix()
+//////////////////////////////////
+//                              //
+// Solve OPR Matrix //
+//                               //
+///////////////////////////////////
+//
+// Basically, we solve the OPR matrix equation, Y[] = Xs[,] * OPRs[]
+// Since we're looking for OPRs[], we multiply both sides by inverse Xs[,].
+// This gives us inverse Xs[,] * Y[] = OPRs[].
+{
+	if (!abort)
+	{
+		var k;																									// Count teams
+		var i;
+		var j;
+		var l;																										// Count of missing teams
+		var nDep = teamSpecs.length;															// # dependent variables
+		var z = nDep;
+		var missing = new Array();																	// Missing team list
+		var missed;																							// Team missing flag
+		var miss = new Array();																		// Score array (minus missing teams)
+		var missDs = new Array();																	// Defense array (minus missing teams)
+//		var missCs = new Array();																	// Difference array (minus missing teams)
+		var invP;																								// Inverted Xs array
+		var OPRs;																							// OPR Solution array
+		var DPRs;																							// DPR Solution array
+		var Cs;																									// CCWM Solution array
+/*
+    To prevent 'singular matrices', we need to eliminate teams that did not play ...
+    								*/
+    	j = 0;
+    	for (i=0; i<nDep; i++)
+    	{
+    		if (Ys[i] == 0)
+    		{
+    			if (missing.length == 0) missing[0] = i;
+	    		else missing.push(i);
+    		} else {
+	    		miss[j] = Ys[i];
+	    		missDs[j] = Ds[i];
+//	    		missCs[j] = [i] - Ds[i];
+	    		j++;
+    		}
+    	}
+		k = 0;
+		if (miss.length > 0)
+		{
+			Xs = new Array(miss.length);														// Independent array (team array)
+			for (i=0; i<nDep; i++)
+			{
+				missed = false;
+				for (l=0; l<missing.length; l++)
+				{
+					if (missing[l] == i)
+					{
+						missed = true;
+						l = missing.length;
+					}
+				}
+				if (!missed)
+				{
+					Xs[k] = new Array();
+
+					m = 0;
+					for (j=0; j<nDep; j++)
+					{
+						for (l=0; l<missing.length; l++)
+						{
+							if (missing[l] == j)
+							{
+								missed = true;
+								l = missing.length;
+							}
+						}
+						if (!missed)
+						{
+							if (tempXs[i * z +j] == null) Xs[k][m] = 0;
+							else Xs[k][m] = tempXs[i * z + j];
+							m++;
+						}
+						missed = false;
+					}
+					k++;
+				}
+			}
+			invP = mInvert(Xs);
+			OPRs = new Array(miss.length);
+			DPRs = new Array(missDs.length);
+			Cs = new Array(miss.length);
+		} else abort = true;
+		if (abort)
+		{
+			console.log('singular or non-square matrix');
+			issueError('singular or non-square matrix', false);										// Test
+		} else {
+			l = 0
+			for (i=0; i<miss.length; i++)
+			{
+				OPRs[i] = 0.;
+				DPRs[i] = 0.;
+				Cs[i] = 0.;
+				for (j=0; j<miss.length; j++)
+				{
+					OPRs[i] += invP[i][j] * miss[j];
+					DPRs[i] += invP[i][j] * missDs[j];
+					Cs[i] += invP[i][j] * (miss[j] - missDs[j]);
+				}
+				if (missing.length > 0)
+				{
+					for (j=0; j<missing.length; j++)
+					{
+						if (missing[j] == (i + l))
+						{
+							l++;
+							j = missing.length;
+						} else {
+							teamSpecs[i + l].opRating = OPRs[i];
+							teamSpecs[i + l].dpRating = DPRs[i];
+							teamSpecs[i + l].ccwmRating = Cs[i];
+						}
+					}
+				} else {
+					teamSpecs[i].opRating = OPRs[i];
+					teamSpecs[i].dpRating = DPRs[i];
+					teamSpecs[i].ccwmRating = Cs[i];
+				}
+			}
+		}
+	}							// end of 'if not abort'
+}
+
+function enterOPR(team1, team2, team3, offense, defense)
+///////////////////////
+//                   //
+// Enter OPR //
+//                   //
+///////////////////////
+//
+// Looks for where team# is in the list of OPR teams and assigns them.  If not a member, then
+// adds new OPR team members.  Enters all into dependent variables (Xs).
+{
+var i, j;
+	if (offense > -1)
+	{
+		var z = teamSpecs.length;
+		for (i=0; i < teamSpecs.length; i++)
+		{
+			if (team1 == teamSpecs[i].num)
+			{
+				Ys[i] += offense;
+				Ds[i] += defense;
+				tempXs[i * z + i]++;
+				for (j=0; j<z; j++)
+				{
+					if (team2 == teamSpecs[j].num) tempXs[i * z + j]++;
+					if (team3 == teamSpecs[j].num) tempXs[i * z + j]++;
+				}
+			}																														// End team #1 match
+			if (team2 == teamSpecs[i].num)
+			{
+				Ys[i] += offense;
+				Ds[i] += defense;
+				tempXs[i * z + i]++;
+				for (j=0; j<z; j++)
+				{
+					if (team1 == teamSpecs[j].num) tempXs[i * z + j]++;
+					if (team3 == teamSpecs[j].num) tempXs[i * z + j]++;
+				}
+			}																														// End team #2 match
+			if (team3 == teamSpecs[i].num)
+			{
+				Ys[i] += offense;
+				Ds[i] += defense;
+				tempXs[i * z + i]++;
+				for (j=0; j<z; j++)
+				{
+					if (team1 == teamSpecs[j].num) tempXs[i * z + j]++;
+					if (team2 == teamSpecs[j].num) tempXs[i * z + j]++;
+				}
+			}																														// Match team block
+		}																															// i Loop
+	}																																// Score > -1 block
+}
+function check4Team(tNum)
+////////////////////////////////
+//                            //
+// Check For Team //
+//                            //
+////////////////////////////////
+//
+// Compare "tNum" against all teams in teamSpecs array.  If not there, add to the list
+{
+	if (getTeam(tNum) == null) newTeam(tNum, ELOBase, 0., 0., 0.);
+}
+function addTabs()
+/////////////////////
+//                 //
+// Add Tabs //
+//                 //
+/////////////////////
+//
+// This will add a 'tab' to the end of each table entry
+{
+	var i, j;
+	var cellCount;
+	var oCells;
+	var table = document.getElementById('tblTeams');
+	for (i = 0; i <table.rows.length; i++)
+	{
+		oCells = table.rows[i].cells;
+		cellCount = oCells.length - 1;
+		for (j=0; j<cellCount; j++) oCells[j].innerHTML = oCells[j].innerHTML.concat(TAB);
+		if (i ==0) alignHeaders(oCells);
+	}
+}
+function removeOptions(opts)
+/////////////////////////////////
+//                             //
+// Remove Options //
+//                             //
+/////////////////////////////////
+//
+//  This will clear the select list, 'opts'.
+{
+	if (opts == null) return;
+	if (opts.options == null) return;
+	while (opts.options.length > 0)
+	{
+		opts.remove(0);
+	}
+}
+function teamSpeck(num, eloRank, opRating, dpRating, cRating)
+////////////////////////
+//                    //
+// Team Spec //
+//                    //
+////////////////////////
+//
+//  Team Spec Structure
+{
+	this.num = num;																								// Team #
+	this.eloRank = eloRank;																					// Team ELO
+	this.opRating = opRating;																				// Team OPR
+	this.dpRating = dpRating;																				// Team DPR
+	this.cRating = cRating;																					// Team CCWM
+}
+function getELORank(num)
+///////////////////////////////////////
+//                                   //
+// Get Team ELO Rank //
+//                                   //
+///////////////////////////////////////
+{
+	for (var i=0; i<teamSpecs.length; i++)
+	{
+		if (teamSpecs[i].num == num) return teamSpecs[i].eloRank;
+	}
+	return ELOBase;
+}
+function getOPR(num)
+//////////////////////////////
+//                          //
+// Get Team OPR //
+//                          //
+//////////////////////////////
+//
+// Match "num" to teamSpecs and return OPR rating
+{
+	for (var i=0; i<teamSpecs.length; i++)
+	{
+		if (teamSpecs[i].num == num) return teamSpecs[i].opRating;
+	}
+	return 0.;
+}
+function getDPR(num)
+//////////////////////////////
+//                          //
+// Get Team DPR //
+//                          //
+//////////////////////////////
+//
+// Match "num" to teamSpecs and return DPR rating
+{
+	for (var i=0; i<teamSpecs.length; i++)
+	{
+		if (teamSpecs[i].num == num) return teamSpecs[i].dpRating;
+	}
+	return 0.;
+}
+function getCCWM(num)
+//////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                      //
+// Get Team Calculated Contribution to Winning Margin //
+//                                                                                      //
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+// Match "num" to teamSpecs and return CCWM rating
+{
+	for (var i=0; i<teamSpecs.length; i++)
+	{
+		if (teamSpecs[i].num == num) return teamSpecs[i].ccwmRating;
+	}
+	return 0.;
+}
+
+function newTeam(tNum, rank, oRating, dRating, cRating)
+///////////////////////
+//                   //
+// New Team //
+//                   //
+///////////////////////
+//
+// Add tNum to teamSpecs array
+{
+	teamSpecs.push({num: tNum, eloRank: rank, opRating: oRating, dpRating: dRating, ccwmRating: cRating});
+}
+function initializeTotals()
+/////////////////////////////
+//                         //
+// Initialize Totals //
+//                         //
+/////////////////////////////
+//
+//  This will reset all ELO and OPR values
+{
+	startELO = true;
+	var i;
+	for (i=0; i<teamSpecs.length; i++)
+	{
+		teamSpecs[i].eloRank = ELOBase;
+		teamSpecs[i].opRating = 0.;
+		teamSpecs[i].dpRating = 0.;
+		teamSpecs[i].ccwmRating = 0.;
+	}
+}
+function initializeELO()
+//////////////////////////
+//                      //
+// Intialize ELO //
+//                      //
+//////////////////////////
+{
+	teamSpecs = [];
+	if (teamNo != null) teamSpecs[0] = new teamSpeck(parseInt(teamNo), ELOBase, 0., 0., 0.);
+	else teamSpecs[0] = new teamSpeck(0, ELOBase, 0., 0., 0.);
+}
+function getTeam(tNum)
+//////////////////////
+//                  //
+// Get Team //
+//                 //
+/////////////////////
+{
+	for (var i=0; i<teamSpecs.length; i++)
+	{
+		if (teamSpecs[i].num == tNum) return teamSpecs[i];
+	}
+	return null;
+}
+function upELORank(avgRedELO, avgBluELO, redTeam, bluTeam, redScore, blueScore, wFactor)
+////////////////////////////
+//                        //
+// Up ELO Rank //
+//                        //
+////////////////////////////
+//
+//  Calculates a new ELO rank from passed score
+{
+	var Ea; var Eb;
+	var Sa; var Sb;
+	var dRa; var dRb;
+	var i;
+	Ea = 1. / (1. + Math.pow(10., (avgBluELO - avgRedELO) / 400.));
+	Eb = 1. / (1. + Math.pow(10., (avgRedELO - avgBluELO) / 400.));
+    if (redScore > blueScore)
+    {
+     	Sa = 1.;
+        Sb = 0.;
+    } else if (blueScore > redScore) {
+        Sa = 0.;
+        Sb = 1.;
+    } else {
+        Sa = 0.5;
+        Sb = 0.5;
+    }
+    dRa = wFactor * (Sa - Ea);
+    dRb = wFactor * (Sb - Eb);
+    for (i=0; i< 3; i++)
+    {
+    	getTeam(redTeam[i]).eloRank = getTeam(redTeam[i]).eloRank + dRa;
+    	getTeam(bluTeam[i]).eloRank = getTeam(bluTeam[i]).eloRank + dRb;
+    }
+}
+function calcAWAR(teamNo)
+////////////////////////////////
+//                            //
+// Calculate aWAR //
+//                            //
+////////////////////////////////
+/*
+     This will calculate the "average 'Wins Above Replacement'" metric
+     					 */
+{
+var i, j;
+var tot;
+// var opr1; var opr2; var opr3;
+var ccwm1, ccwm2, ccwm3;
+var score1, score2;
+	var scores = document.getElementById('tblTeams');
+	tot = 0;
+	for (i=1; i<scores.rows.length; i++)
+	{
+	// Find our player //
+		j=1;
+		while (j<7 && (scores.rows[i].cells[j].innerHTML != teamNo)) j++;
+		if (j < 4)
+		{
+//			opr1 = getOPR(scores.rows[i].cells[1].innerHTML);
+//			opr2 = getOPR(scores.rows[i].cells[2].innerHTML);
+//			opr3 = getOPR(scores.rows[i].cells[3].innerHTML);
+//			tot += eval(scores.rows[i].cells[7].innerHTML) - opr1 - opr2 - opr3;
+			ccwm1 = getCCWM(scores.rows[i].cells[1].innerHTML);
+			ccwm2 = getCCWM(scores.rows[i].cells[2].innerHTML);
+			ccwm3 = getCCWM(scores.rows[i].cells[3].innerHTML);
+			score1 = scores.rows[i].cells[7].innerHTML;
+			score2 = scores.rows[i].cells[8].innerHTML;
+			tot = 0.;
+			if (IsNumeric(score1)) tot = eval(score1);
+			if (IsNumeric(score2)) tot -= eval(score2);
+			if (IsNumeric(ccwm1))
+			{
+				if (j != 1) tot -= ccwm1;
+			}
+			if (IsNumeric(ccwm2))
+			{
+				if (j != 2) tot -= ccwm2;
+			}
+			if (IsNumeric(ccwm3))
+			{
+				if (j != 3) tot -= ccwm3;
+			}
+		} else {
+//			opr1 = getOPR(scores.rows[i].cells[4].innerHTML);
+//			opr2 = getOPR(scores.rows[i].cells[5].innerHTML);
+//			opr3 = getOPR(scores.rows[i].cells[6].innerHTML);
+//			tot += eval(scores.rows[i].cells[8].innerHTML) - opr1 - opr2 - opr3;
+			ccwm1 = getCCWM(scores.rows[i].cells[4].innerHTML);
+			ccwm2 = getCCWM(scores.rows[i].cells[5].innerHTML);
+			ccwm3 = getCCWM(scores.rows[i].cells[6].innerHTML);
+			tot = 0.;
+			if (IsNumeric(score2)) tot = eval(score2);
+			if (IsNumeric(score1)) tot -= eval(score1);
+			if (IsNumeric(ccwm1))
+			{
+				if (j != 4) tot -= ccwm1;
+			}
+			if (IsNumeric(ccwm2))
+			{
+				if (j != 5) tot -= ccwm2;
+			}
+			if (IsNumeric(ccwm3))
+			{
+				if (j != 6) tot -= ccwm3;
+			}
+		}
+	}
+	return tot / scores.rows.length;
+}
+function appMatchSpecs(chrs)
+//////////////////////////////////////////////
+//                                         //
+// Application Match Specs //
+//                                         //
+/////////////////////////////////////////////
+{
+	if (chrs != null)
+	{
+		displayMatchSpecs(chrs);		
+	} else console.log(chrs.concat(" not Numeric"));
+}
+function getMatchSpecs(tableNo)
+//////////////////////////////////
+//                              //
+// Get Match Specs //
+//                              //
+//////////////////////////////////
+{
+	depth++;																						// Test
+	console.log(repeat(depth,"+").concat("into getMatchSpecs,tableNo=") + tableNo);			// Test
+	var table = document.getElementById("tblTeams");
+	displayMatchSpecs(table.rows[tableNo].cells[0].innerHTML);
+	console.log(repeat(depth,"+").concat("exit getMatchSpecs"));		// Test
+	depth--;																						// Test
+}
+function displayMatchSpecs(matchNo)
+////////////////////////////////////////
+//                                    //
+// Display Match Specs //
+//                                    //
+////////////////////////////////////////
+//
+//. This will display specs for the given "matchNo"
+{
+	depth++;																									// Test
+	console.log(repeat(depth,"*").concat("in displayMatchSpecs"));				// Test
+	var str = BlueAllianceURL.concat("match/");
+	str = str.concat(eventName);
+	if (IsNumeric(matchNo) && (matchNo > 0) && (matchNo < 200))
+	{
+		str = str.concat("_qm");
+		str = str.concat(matchNo.trim());
+		str = str.concat("?X-TBA-Auth-Key=");
+//		console.log(str.concat(xbtAuthKey));														// Test
+		issueRequestHTTP("GET", str.concat(xbtAuthKey), function(results)
+		{
+			matchSpecsHaveBeenDownloaded(results);
+		});
+	} else {
+		str = str.concat("_");
+		str = str.concat(matchNo.trim());
+		str = str.concat("?X-TBA-Auth-Key=");
+//		console.log(str.concat(xbtAuthKey));														// Test
+		issueRequestHTTP("GET", str.concat(xbtAuthKey), function(results)
+		{
+			matchSpecsHaveBeenDownloaded(results);
+		});
+	}
+	console.log(repeat(depth,"*").concat("exit displayMatchSpecs"));				// Test
+	depth--;
+}
+function matchSpecsHaveBeenDownloaded(contents)
+//////////////////////////////////////////////////////////////////
+//                                                              //
+// Match Specs Have Been Downloaded //
+//                                                              //
+//////////////////////////////////////////////////////////////////
+//
+// This will parse the downloaded JSON string into specific match specs
+{
+//	console.log(contents);																						// Test
+	var parsed = JSON.parse(contents);
+	var elem = document.getElementById("divMatch");
+	var str = "&nbsp;Match #";
+	str = str.concat(parsed.match_number);
+	str = str.concat("&nbsp;&nbsp;Red Auto Pts:");
+	if (parsed.score_breakdown != null)
+	{
+		str = str.concat(parsed.score_breakdown.red.autoPoints);
+		str = str.concat("&nbsp;&nbsp;Tele Pts:");
+		str = str.concat(parsed.score_breakdown.red.teleopPoints);
+		str = str.concat("&nbsp;&nbsp; Climb Pts:");
+//		str = str.concat(parsed.score_breakdown.red.endgamePoints);
+		str = str.concat(parsed.score_breakdown.red.habClimbPoints);
+		str = str.concat("&nbsp;&nbsp;|||&nbsp;&nbsp;Blue Auto Pts:");
+		str = str.concat(parsed.score_breakdown.blue.autoPoints);
+		str = str.concat("&nbsp;&nbsp;Tele Pts:");
+		str = str.concat(parsed.score_breakdown.blue.teleopPoints);
+		str = str.concat("&nbsp;&nbsp; Climb Pts:");
+//	elem.innerHTML = str.concat(parsed.score_breakdown.blue.endgamePoints);
+		elem.innerHTML = str.concat(parsed.score_breakdown.blue.habClimbPoints) + "<BR>";
+	}
+	var l = parsed.alliances.red.team_keys[0].length;
+	var eloRed = getELORank(parsed.alliances.red.team_keys[0].substring(3,l));
+	l = parsed.alliances.red.team_keys[1].length;
+	eloRed = eloRed + getELORank(parsed.alliances.red.team_keys[1].substring(3,l));
+	l = parsed.alliances.red.team_keys[2].length;
+	eloRed = (eloRed + getELORank(parsed.alliances.red.team_keys[2].substring(3,l))) / 3.;
+	var eloBlue = getELORank(parsed.alliances.blue.team_keys[0].substring(3,l));
+	l = parsed.alliances.blue.team_keys[1].length;
+	eloBlue = eloBlue + getELORank(parsed.alliances.blue.team_keys[1].substring(3,l));
+	l = parsed.alliances.blue.team_keys[2].length;
+	eloBlue = (eloBlue + getELORank(parsed.alliances.blue.team_keys[2].substring(3,l))) / 3.;
+	str = "&nbsp;Odds of a Red Alliance win:&nbsp;";
+	var odds = 100. / (1. + Math.pow(10., (eloBlue - eloRed) / 400.));
+	str = str.concat(odds.toFixed(2));
+	if (parsed.score_breakdown == null)
+	{
+		elem.innerHTML = str.concat("%");
+	} else elem.innerHTML = elem.innerHTML.concat(str.concat("%"));
+}
+function alignHeaders(tableCells)
+////////////////////////////
+//                         //
+// Align Headers //
+//                         //
+/////////////////////////////
+//
+//. This will line up the table headers
+{
+	var redHeader = document.getElementById("RED");
+	var bluHeader = document.getElementById("BLUE");
+	var redScore = document.getElementById("redScore");
+	var bluScore = document.getElementById("blueScore");
+	var aline = tableCells[0].offsetWidth + tableCells[1].offsetWidth + (tableCells[2].offsetWidth / 2.);
+	var percent = (aline * 100. / document.body.clientWidth).toFixed(1);
+	redHeader.style.left = String(percent).concat("%");
+	aline = aline + (tableCells[2].offsetWidth / 2.) + tableCells[3].offsetWidth + tableCells[4].offsetWidth + (tableCells[5].offsetWidth / 2.);
+	percent = (aline * 100. / document.body.clientWidth).toFixed(1);
+	bluHeader.style.left = String(percent).concat("%");
+	aline = aline + (tableCells[5].offsetWidth / 2.) + tableCells[6].offsetWidth + (tableCells[7].offsetWidth / 2.);
+	percent = (aline * 100. / document.body.clientWidth).toFixed(1);
+	redScore.style.left = String(percent).concat("%");
+	aline = aline + (tableCells[7].offsetWidth / 2.) + (tableCells[8].offsetWidth / 2);
+	percent = (aline * 100. / document.body.clientWidth).toFixed(1);
+	bluScore.style.left = String(percent).concat("%");
+}
+function IsNumeric(testVal)
+///////////////////////
+//                   //
+// Is Numeric //
+//                   //
+///////////////////////
+//
+// This will return "true" if the expression "testVal" is numeric.  Else false
+{
+	return !isNaN(testVal);
+}
+function repeat(s, n)
+//////////////////
+//              //
+// Repeat //
+//              //
+//////////////////
+//
+//  This will repeat "n" # of times the expression "s"
+{
+	if (n > 0)
+	{
+	    var a = [];
+	    while(a.length < n)
+	    {
+	        a.push(s);
+	    }
+	    return a.join('');
+	 } else return '';
+}
+function issueError(msg, cleer)
+///////////////////////
+//                   //
+// Issue Error //
+//                   //
+///////////////////////
+//
+//  This puts a "red" message at the bottom of the screen
+{
+var elem = document.getElementById("errorMsg");
+	depth++;																												// Test
+	console.log(repeat("*",depth).concat("in issueError " + msg));							// Test
+	elem.visibility = "visible";
+	if (cleer)
+	{
+		elem.innerHTML = msg;
+	} else {
+		var char = elem.innerHTML + " ";
+		elem.innerHTML = char.concat(msg);
+	}
+	console.log(repeat("*",depth).concat("out issueError"));										// Test
+	depth--;																												// Test
+}
+function postInfo()
+////////////////////////////////////////////
+//                                        //
+// POST INSTRUCTIONS //
+//                                        //
+////////////////////////////////////////////
+//
+// This will display a page of instructions for the user
+{
+	var opened = window.open("");
+	opened.document.write("<HTML><HEAD><TITLE>Scout Boss Instructions</TITLE></HEAD><BODY><H4 align=CENTER>SCOUT BOSS</H4><P>&quot;Skunk Boss&quot; is a web app that can be run from any personal computing device (iPad, PC, iPhone, Android, etc.) that will provide pertinent statistics during a robotics competition (provided &quot;Blue Alliance&quot; is being upgraded and is available).  It will provide a pull-down list of all FRC competitions occurring within 5 days of the current date from which the user can select.  There is an option to analyze a &quot;typed in&quot; event provided the user knows the &quot;event code&quot;.</P><P>To run &quot;Scout Boss&quot;, simply double-click on the &quot;Scout Boss&quot; link at SkunkScout.com.  You will get a splash page with a Year and Event entry to select.  The year will default to the current year.  The event list will include all FRC competitions within 5 days of the current day (see &quot;Event Option&quot; below for a user-entered competition).  Scroll down and select one of the events in the event list (names use Blue Alliance event codes).  Once an event is selected the Teams list will be populated.  Select a team to analyze and then press the &quot;EXTRACT&quot; button.</P><P>Two lines of statistics will be displayed followed by a table of match numbers, teams and scores.  The first of two lines will consist of wins, losses and ties, # of ranking points, the average offensive alliance score and average defense alliance score.  The second line will display the team&apos;s ELO, OPR, DPR, CCWM, aWAR and event ranking.  The definitions of these are as follows:</P><P>ELO: Statistic named after Arpad Elo, originally used by the Chess Federation to rate chess masters but can be applied to robotics competitions.  Initial ELOs are set at 1500 with points above 1500 indicating a team consistently winning while below 1500 means its getting worse. To use ELO to predict a match's result, click on any match #. The prediction will appear below the schedule.  Percentages above 50% means Red likely to win, below Red loses.</P><P>OPR: Acronym standing for &quot;Offensive Performance Rating&quot;.  A better acronym is CCTS (Calculated Contribution to Score).  This is an approximation of the average # of points contributed by the team of interest to any alliance.  Theoretically, 3 teams on average, will end up with a score equal to the sum of their respective OPRs.</P><P>DPR: Acronym standing for &quot;Defensive Performance Rating&quot;.  Basically, this is the same as &quot;OPR&quot; except it&apos;s what teams score on average AGAINST the team in question.</P><P>CCWM: Acronym standing for &quot;Calculated Contribution to Winning Margin&quot;.  This is the same as &quot;OPR&quot; and &quot;DPR&quot; except its the average difference of points per match this team contributes (ie., a CCWM of 2 means that the team in question, on average, will add 2 points to the difference in the overall score).</P><P>aWar: Adjusted Wins Above Replacement.  This statistics denotes the # of points on average more per match that an alliance will win over the team&apos;s replacement.  This is basically the # of points on average the three times scored beyond their CCWMs.</P><P>The table at the bottom reveals the actual matches the chosen team is/will be in.  Those matches that have been played show the matchups and the score.  Scores are underlined if the chosen team&apos;s alliance won that match.  The red and blue alliances are outlined in their respective colors while the chosen team is highlighted in gold.</P><P>If you want to analyze an event not in the list, you can type the event in the blank text box following the &quot;Event:&quot; label.  That event will be added to the &quot;Event:&quot; pull-down list for selecting.  Be sure to prefix the event with the year.  For instance, if you want to analyze 2016&apos;s &quot;Girl&apos;s Generation&quot; in Washington, type &quot;2016wagg&quot; in the text box.</P></BODY></HTML>");
+}
+function javascriptAbort()
+///////////////////////////////
+//                           //
+// Abort Javascript //
+//                           //
+///////////////////////////////
+//
+//  This will kill our process
+{
+   throw new Error('Aborting javascript');
+}
+</SCRIPT>
+<STYLE TYPE="text/css">
+	@import url('https://fonts.googleapis.com/css?family=Titillium+Web');
+	.redFont{
+		color: red;
+		font-family: "Titillium Web";
+	}
+	.blueFont{
+		color: blue;
+		font-family: "Titillium Web";
+	}
+	.blackFont{
+		color: black;
+		font-size: 12pt;
+		font-family: "Titillium Web";
+	}
+	.bigFont{
+		font-size: 16pt;
+		font-family: "Titillium Web";
+	}
+	.purpleFont{
+		color: purple;
+		font-size: 18pt;
+		font-family: Arial Black;
+		font-family: "Titillium Web";
+	}
+	.greenFont{
+		color: green;
+		font-size: 18pt;
+		font-family: "Titillium Web";
+	}
+	.skunkFont{
+		color: black;
+		font-family: "Titillium Web";
+		font-size: 16pt;
+	}
+</STYLE>
+</HEAD>
+<BODY onLoad="Initialize()">
+<DIV id="theDate" style="position: absolute; left: 0%; top: 0%">Date:&nbsp;</DIV>
+<DIV id="title" style="position: absolute; left: 35%; top: 0%" class="purpleFont">SCOUT BOSS</DIV>
+<DIV style="position: absolute; left: 60%; top: 0%" class="skunkFont">1983 Skunk Works</DIV>
+<DIV id="theTime" style="position: absolute; left: 90%; top: 0%; display: inline">Time:&nbsp;</DIV>
+<DIV style="position: absolute; left: 1%; top: 4%; display: inline">Year: <INPUT id="theYear" type="textbox" style="width: 70px; height: 25px" class="blackFont"
+																															onchange="getNextEvents()"></INPUT></DIV>
+<DIV style="position: absolute; left: 11%; top: 4%; display: inline">Event: <SELECT id="eventName" width="100" style="width: 100px" onchange="getTeams(this)">
+			<OPTION value="" SELECTED>         </OPTION></SELECT></DIV>
+<DIV style="position: absolute; left: 30%; top: 4%; display: inline">Teams: <SELECT id="teams" width="90" style="width: 90px" onchange="initializeTotals()">
+			<OPTION value="" SELECTED>         </OPTION></SELECT></DIV>
+<DIV style="position: absolute; left: 51%; top: 4%; display: inline">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<INPUT type="button" style="width: 90px; height: 20px;
+																									border: 1px solid #F00; background: #F88" value="EXTRACT" onclick="extractSchedule()"></INPUT></DIV>
+<DIV style="position: absolute; left: 65%; top: 4%; display: inline"; class="mediumFont"; onchange="assignEvent()">Event: <INPUT type="text"; id="txtEvent"; size="14%";
+																																border="solid"; class="largeFont"></INPUT></DIV>
+<DIV style="position: absolute; left: 85%; top: 4%; display: inline">&nbsp;&nbsp;<INPUT type="button"; style="width: 120px; height: 20px; border:1px solid #0A0;
+																								background: #FF0" value="INSTRUCTIONS" class=greenFont" onclick="postInfo()"></INPUT></DIV>
+<DIV id="won" style="position: absolute; left: 0%; top: 9%; display: inline">WON:&nbsp;</DIV>
+<DIV id="lost" style="position: absolute; left: 16%; top: 9%; display: inline">LOST:&nbsp;</DIV>
+<DIV id="tied" style="position: absolute; left: 32%; top: 9%; display: inline">TIED:&nbsp;</DIV>
+<DIV id="rankPoints" style="position: absolute; left: 48%; top: 9%; display: inline">RANK Pt.s:&nbsp;</DIV>
+<DIV id="avgOff" style="position: absolute; left: 64%; top: 9%; display: inline">Avg. OFF:&nbsp;</DIV>
+<DIV id="avgDef" style="position: absolute; left: 80%; top: 9%; display: iniine">DEF:&nbsp;</DIV>
+<DIV id="elo" style="position: absolute; left: 2%; top: 12%; display: block">ELO:&nbsp;</DIV>
+<DIV id="opr" style="position: absolute; left: 18%; top: 12%; display: block">OPR:&nbsp;</DIV>
+<DIV id="dpr" style="position: absolute; left: 34%; top: 12%; display: block">DPR:&nbsp;</DIV>
+<DIV id="ccwm" style="position: absolute; left: 50%; top: 12%; display: block">CCWM:&nbsp;</DIV>
+<DIV id="aWar" style="position: absolute; left: 66%; top: 12%; display: block">aWAR:&nbsp;</DIV>
+<DIV id="rank" style="position: absolute; left: 92%; top: 12%; display: inline">RANK:&nbsp;</DIV>
+<DIV id="matchNo" style="position: absolute; left: 2%; top: 15%; display: block">Match #</DIV>
+<DIV id="RED" style="position: absolute; left: 26%; top: 15%; display: inline" class="redFont">RED</DIV>
+<DIV id="BLUE" style="position: absolute; left: 54%; top: 15%; display: inline" class="blueFont">BLUE</DIV>
+<DIV id="redScore" style="position: absolute; left: 80%; top: 15%; display: inline" class="redFont">SCORE</DIV>
+<DIV id="blueScore" style="position: absolute; left: 90%; top: 15%; display: inline" class="blueFont">SCORE</DIV>
+<DIV id="errorMsg" style="position: absolute; left: 1%; top: 95%; visibility: hidden"><FONT class="redFont">Error:</FONT></DIV>
+<BR><BR><BR><BR><BR><BR>
+<DIV id="divTable" style="position: absolute; left: 1%; top: 25%;" class="bigFont">
+	<TABLE id="tblTeams" border="1" style="width:100%">
+		<TBODY>
+		 	<TR align="center" bgcolor=WHITE>
+			    <TD onclick = "getMatchSpecs(0)"> </TD>
+			    <TD style= "border:SOLID RED;"> </TD>
+			    <TD style= "border:SOLID RED;"> </TD>
+			    <TD style= "border:SOLID RED;"> </TD>
+			    <TD style= "border:SOLID BLUE;"> </TD>
+			    <TD style= "border:SOLID BLUE;"> </TD>
+			    <TD style= "border:SOLID BLUE;"> </TD>
+			    <TD style= "border:SOLID RED;"> </TD>
+			    <TD style= "border:SOLID BLUE;"> </TD>
+			</TR>
+		</TBODY>
+	</TABLE>
+</DIV>
+<DIV id="divMatch"; style="visibility:visible; display: inline"; class="blackFont">&nbsp;&nbsp;Match #</DIV>
+<DIV id="errorMsg" style="position: absolute; left: 7px; top: 97%; visibility: visible" class="redFont"></DIV>
+</BODY>
+</HTML>

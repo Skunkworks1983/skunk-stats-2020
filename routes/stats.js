@@ -18,13 +18,13 @@ const matches = mysql.createPool({
 });
 
 // SQLite connection
-const stats = new sqlite3.Database(`${__dirname}/db/stats.db`, (err) => {
-  if (err) {
-    console.error(err.message);
-  } else {
-    console.log('Connected to the SQLITE database.');
-  }
-});
+// const stats = new sqlite3.Database(`${__dirname}/db/stats.db`, (err) => {
+//   if (err) {
+//     console.error(err.message);
+//   } else {
+//     console.log('Connected to the SQLITE database from stats router.');
+//   }
+// });
 
 
 module.exports = router;
