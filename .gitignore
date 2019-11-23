@@ -1,6 +1,7 @@
 key.js
 stats.db
-dist/
+dist/*
+test.css
 
 # Logs
 logs

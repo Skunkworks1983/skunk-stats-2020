@@ -1,5 +1,13 @@
 <template>
-  <login></login>
+  <div class="loginPage">
+    <login></login>
+    <div>
+      <h5>
+        Looking to
+        <router-link to="/register" class="btn-link">register?</router-link>
+      </h5>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -12,3 +20,15 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+.centerText {
+  display: flex;
+  align-items: center;
+  flex-flow: column;
+}
+
+h5 {
+  text-align: center;
+}
+</style>

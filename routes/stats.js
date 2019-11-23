@@ -1,6 +1,5 @@
 // This router is for serving up statistical info
 var express = require('express');
-var sqlite3 = require('sqlite3');
 var jstat = require('jstat').jStat;
 var mysql = require('mysql');
 var Worker = require('tiny-worker');
@@ -16,15 +15,5 @@ const matches = mysql.createPool({
   password: keys.data_pass,
   database: 'skunk',
 });
-
-// SQLite connection
-// const stats = new sqlite3.Database(`${__dirname}/db/stats.db`, (err) => {
-//   if (err) {
-//     console.error(err.message);
-//   } else {
-//     console.log('Connected to the SQLITE database from stats router.');
-//   }
-// });
-
 
 module.exports = router;

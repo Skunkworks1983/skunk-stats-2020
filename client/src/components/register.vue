@@ -115,9 +115,6 @@ import * as config from "../config.js";
 
 export default {
   name: "register",
-  props: {
-    address: String
-  },
   data() {
     return {
       name: null,
