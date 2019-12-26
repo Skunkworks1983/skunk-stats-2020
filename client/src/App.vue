@@ -24,7 +24,7 @@
             >Analyses</a>
             <ul>
               <li>
-                <router-link to="/dashboards">Team Dashboards</router-link>
+                <router-link to="/dashboard">Team Dashboards</router-link>
               </li>
               <li>
                 <router-link to="/qualMatches">Qualification Matches</router-link>
@@ -54,20 +54,7 @@
             </ul>
           </li>
           <li>
-            <a
-              aria-disabled
-              data-toggle="collapse"
-              aria-expanded="false"
-              class="dropdown-toggle"
-            >Tools</a>
-            <ul>
-              <li>
-                <router-link to="/scoutBoss">Scout Boss</router-link>
-              </li>
-              <li>
-                <router-link to="/predictionsTool">Predictions Tools</router-link>
-              </li>
-            </ul>
+            <router-link to="/tools">Tools</router-link>
           </li>
           <li>
             <a
@@ -320,6 +307,28 @@ ul ul a {
     transition: ease-in-out 0.4s;
   }
 }
+
+/* Animations */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s;
+}
+.fade-enter,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-fade-enter-active {
+  transition: all 0.3s ease;
+}
+.slide-fade-leave-active {
+  transition: all 0.8s cubic-bezier(1, 0.5, 0.8, 1);
+}
+.slide-fade-enter, .slide-fade-leave-to
+/* .slide-fade-leave-active below version 2.1.8 */ {
+  transform: translateX(10px);
+  opacity: 0;
+}
 </style>
 
 <script>
@@ -327,8 +336,7 @@ export default {
   name: "NAV",
   data() {
     return {
-      toggleMenu: false,
-      links: [{}]
+      toggleMenu: false
     };
   },
   methods: {}

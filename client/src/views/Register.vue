@@ -1,6 +1,6 @@
 <template>
   <div class="register">
-    <register address="127.0.0.1:3000/users/register" />
+    <register />
     <hr />
     <div class="centerText">
       <h5>

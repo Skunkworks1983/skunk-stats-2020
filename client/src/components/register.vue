@@ -14,6 +14,7 @@
             class="form-control"
             v-model="name"
             placeholder="Your name"
+            maxlength="50"
             required
           />
         </div>
@@ -27,6 +28,8 @@
             v-model="username"
             placeholder="The username you use to login with"
             class="form-control"
+            maxlength="50"
+            minlength="3"
             required
           />
         </div>
@@ -40,6 +43,8 @@
             v-model="password"
             placeholder="Password. Make it secure"
             class="form-control"
+            minlength="8"
+            maxlength="72"
             required
           />
         </div>
@@ -53,6 +58,8 @@
             v-model="confirmPass"
             placeholder="Confirm your password"
             class="form-control"
+            minlength="8"
+            maxlength="72"
             required
           />
           <span v-if="!passwordMatch" class="text-danger">Passwords do not match!</span>
@@ -62,11 +69,12 @@
         </div>
         <div>
           <input
-            type="text"
+            type="email"
             required
             v-model="email"
             placeholder="example@whostinks.tk"
             class="form-control"
+            maxlength="50"
           />
         </div>
         <div>
@@ -80,6 +88,7 @@
             pattern="\\d+"
             step="1"
             min="1"
+            max="9999"
             class="form-control"
             placeholder="1983"
           />
@@ -100,10 +109,9 @@
         </div>
       </div>
       <br />
-      <br />
       <div class="center">
-        <p class="text-danger" v-if="statusCode !== 200">Error {{ statusCode }}.</p>
-        <p class="text-danger" v-if="statusText != 'null'">{{ statusText }}</p>
+        <p class="text-danger" v-if="requestError">{{ statusText }}</p>
+        <p class="text-success" v-if="requestSuccess">Success! Redirecting to login page...</p>
         <button type="submit" class="btn btn-outline-success">Submit</button>
       </div>
     </form>
@@ -112,6 +120,7 @@
 
 <script>
 import * as config from "../config.js";
+import axios from "axios";
 
 export default {
   name: "register",
@@ -125,15 +134,18 @@ export default {
       confirmPass: null,
       username: null,
       passwordMatch: true,
-      statusCode: 200,
-      statusText: "null",
-      errors: []
+      statusCode: null,
+      statusText: null,
+      requestError: null,
+      requestSuccess: null
     };
   },
   methods: {
     onSubmit() {
-      this.status = null;
+      this.statusCode = null;
       this.statusText = null;
+      this.requestError = null;
+      this.requestSuccess = null;
       if (this.password === this.confirmPass) {
         this.passwordMatch = true;
         let registration = {
@@ -145,27 +157,32 @@ export default {
           username: this.username
         };
         this.$emit("registration-submitted", registration);
-        console.log(config.hostname);
         axios({
           method: "POST",
           url: `${config.hostname}/users/register`,
-          data: registration
+          data: registration,
+          validateStatus: status => {
+            return status == 201;
+          }
         })
-          .then(function(res) {
-            console.log("Called then");
-            if (res.status === 200) {
-              router.push({ name: "/" });
-            } else {
-              this.statusCode = res.status;
-              this.statusText = res.statusText;
-              console.log(`${this.statusCode}, ${this.statusText}`);
-            }
+          .then(res => {
+            this.statusCode = res.statusCode;
+            this.statusText = res.data;
+            this.requestSuccess = true;
+            setTimeout(() => {
+              this.$router.push({ path: "/login" });
+            }, 1000);
           })
-          .catch(function(err) {
-            console.log("Called catch");
-            this.statusCode = err.status;
-            this.statusText = err.statusText;
-            console.log(`${this.statusCode}, ${this.statusText}`);
+          .catch(err => {
+            if (err.response) {
+              this.statusCode = err.response.status;
+              this.statusText = err.response.data;
+              this.requestError = true;
+            } else if (err.request) {
+              console.log(`Request Error: ${err.request}`);
+            } else {
+              console.log(`Error: ${err}`);
+            }
           });
       } else {
         this.passwordMatch = false;

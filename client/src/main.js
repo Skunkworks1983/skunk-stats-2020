@@ -4,7 +4,8 @@ import router from './router'
 import BootstrapVue from 'bootstrap-vue'
 
 // janky global require
-window.axios = require('axios')
+// window.axios = require('axios');
+window.chartsJS = require('chart.js');
 
 Vue.config.productionTip = false;
 

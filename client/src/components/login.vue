@@ -35,8 +35,8 @@
       </div>
       <br />
       <div class="center">
-        <p class="text-danger" v-if="statusCode !== 200">Error {{ statusCode }}.</p>
-        <p class="text-danger" v-if="statusText != 'null'">{{ statusText }}</p>
+        <p class="text-danger" v-if="requestError">{{ statusText }}</p>
+        <p class="text-success" v-if="requestSuccess">Success! Redirecting...</p>
         <button type="submit" class="btn btn-outline-success">Submit</button>
       </div>
     </form>
@@ -45,16 +45,50 @@
 </template>
 
 <script>
+import * as config from "../config.js";
+import axios from "axios";
+
 export default {
-  name: "loginPage",
+  name: "login",
   data() {
     return {
       username: null,
-      password: null
+      password: null,
+      statusCode: null,
+      statusText: null,
+      requestError: null,
+      requestSuccess: null
     };
   },
   methods: {
-    onSubmit() {}
+    onSubmit() {
+      this.statusCode = null;
+      this.statusText = null;
+      this.requestError = null;
+      this.requestSuccess = null;
+      var credentials = {
+        username: this.username,
+        password: this.password
+      };
+      axios({
+        method: "POST",
+        url: `${config.hostname}/users/login`,
+        data: credentials
+      })
+        .then(res => {
+          this.requestSuccess = true;
+          sessionStorage.setItem("token", res.data.token);
+          sessionStorage.setItem("name", res.data.user);
+          setTimeout(() => {
+            this.$router.push({ path: "/" });
+          }, 1000);
+        })
+        .catch(err => {
+          this.statusCode = err.response.status;
+          this.statusText = err.response.data;
+          this.requestError = true;
+        });
+    }
   }
 };
 </script>
