@@ -2,7 +2,10 @@
   <div class="homePage">
     <div>
       <h1 class="text-success" v-if="username">Welcome back, {{username}}!</h1>
-      <h1 class="text-success" v-else>Welcome to Skunk-Stats!</h1>
+      <div v-else>
+        <h1 class="text-success">Welcome to Skunk-Stats!</h1>
+        <h4>You are not logged in!</h4>
+      </div>
     </div>
     <hr />
     <!-- <parallax>

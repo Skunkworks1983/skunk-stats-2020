@@ -2,8 +2,10 @@ key.js
 stats.db
 dist/*
 test.css
+ScoutBoss.html
 
 # Logs
+logs/*
 logs
 *.log
 log.txt
