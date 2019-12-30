@@ -16,6 +16,7 @@
             placeholder="Your name"
             maxlength="50"
             required
+            autofocus
           />
         </div>
         <div>

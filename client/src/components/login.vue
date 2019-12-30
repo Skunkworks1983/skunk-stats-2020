@@ -16,6 +16,7 @@
             required
             v-model="username"
             placeholder="Username"
+            autofocus
           />
         </div>
         <div>

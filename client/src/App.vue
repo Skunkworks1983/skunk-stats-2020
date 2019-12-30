@@ -128,8 +128,8 @@ ul {
   -webkit-box-align: stretch;
   -ms-flex-align: stretch;
   align-items: stretch;
-  -webkit-perspective: 1000px;
-  perspective: 1000px;
+  -webkit-perspective: 1500px;
+  perspective: 1500px;
 }
 
 #sidebar {

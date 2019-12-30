@@ -78,4 +78,8 @@ router.post('/login', (req, res) => {
   }
 })
 
+router.get('/testAuth', usersMiddleware.protectedRoute, (req, res) => {
+  res.status(200).send('Authorized')
+})
+
 module.exports = router;

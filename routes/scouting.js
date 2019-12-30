@@ -36,7 +36,6 @@ router.get('/schedule', (req, res) => {
 
 // Send urls to the images
 router.get('/robot', (req, res) => {
-  console.log(req.header('team'));
   if (req.header('team')) {
     // Find all files matching the glob
     glob(`${__dirname}/../public/robots/${req.header('team')}*.jpg`, (err, files) => {
@@ -51,7 +50,6 @@ router.get('/robot', (req, res) => {
       } else {
         res.send(JSON.stringify([`${customRes.path}/robots/default.jpg`]));
       }
-
     })
   } else {
     customRes.invalidHeaders(res);
@@ -85,6 +83,5 @@ router.get('/tba', (req, res) => {
     customRes.invalidHeaders(res);
   }
 })
-
 
 module.exports = router;
