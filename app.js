@@ -1,5 +1,4 @@
-#!/usr/bin/env node
- // #!/home/ubuntu/.nvm/versions/node/v12.13.0/bin/node
+#!/home/ubuntu/.nvm/versions/node/v12.13.0/bin/node
 
 var express = require('express');
 var path = require('path');
