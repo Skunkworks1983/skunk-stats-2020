@@ -1,41 +1,37 @@
 #!/home/ubuntu/.nvm/versions/node/v12.13.0/bin/node
 
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-// Password hashing
-var bcrypt = require('bcrypt');
+const express = require('express');
+const path = require('path');
+const cookieParser = require('cookie-parser');
+const logger = require('morgan');
 // API keys and MySQL credentials
-var keys = require('./key');
+const keys = require('./key');
 // For file system operations
-var fs = require('fs');
+const fs = require('fs');
 // grab custom util functions
-var utils = require('./lib/utils');
+const utils = require('./lib/utils');
 // grab custom responses
-var customRes = require('./lib/customResponses');
+const customRes = require('./lib/customResponses');
 // security
-var helmet = require('helmet');
-// http requests
-var axios = require('axios');
+const helmet = require('helmet');
 // rate limiter
-var rateLimit = require('./lib/rateLimit');
+const rateLimit = require('./lib/rateLimit');
 // multer for form data
-var multer = require('multer');
+const multer = require('multer');
 // databases
-var usersDB = require('./lib/usersDB');
-var matchesDB = require('./lib/matchesDB');
+const usersDB = require('./lib/usersDB');
+const matchesDB = require('./lib/matchesDB');
 // api fallback
-var history = require('connect-history-api-fallback');
+const history = require('connect-history-api-fallback');
 // user middleware
-var usersMiddleware = require('./lib/userMiddleware');
+const usersMiddleware = require('./lib/userMiddleware');
 // compression 
-var compression = require('compression');
+const compression = require('compression');
 
 // routes
-var usersRouter = require('./routes/users');
-var statsRouter = require('./routes/stats');
-var scoutingRouter = require('./routes/scouting');
+const usersRouter = require('./routes/users');
+const statsRouter = require('./routes/stats');
+const scoutingRouter = require('./routes/scouting');
 
 const port = process.env.PORT || 1983;
 var app = express();
@@ -51,6 +47,8 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'client', 'dist')));
 // Allow serving of images
 app.use(express.static(path.join(__dirname, 'public')));
+// Allow serving of prototypes
+app.use(express.static(path.join(__dirname, 'prototypes')));
 app.use(helmet());
 app.disable('x-powered-by');
 app.use(rateLimit);
@@ -60,6 +58,10 @@ app.use('/users', usersRouter);
 app.use('/stats', statsRouter);
 app.use('/scouting', scoutingRouter);
 
+app.get('/map', (req, res) => {
+  res.sendFile(path.join(__dirname, 'prototypes', 'map.html'));
+})
+
 // must be at the bottom to ensure no endpoints are missed
 app.use(history({
   index: '/'
@@ -67,9 +69,18 @@ app.use(history({
 
 module.exports = app;
 
+let robotUpload = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, `${__dirname}/public/robots`)
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${__dirname}/`)
+  }
+})
+
 // Send SPA
 app.get('/', (req, res, next) => {
-  res.sendFile(path.join(__dirname + '/client', 'dist', 'index.html'));
+  res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
 });
 
 // recieve pit scouting data
@@ -80,7 +91,28 @@ app.post('/pit/upload', usersMiddleware.protectedRoute, (req, res) => {
 // recieve pit scouting images
 // add multer
 app.post('/pit/upload/images', usersMiddleware.protectedRoute, (req, res) => {
-
+  if (req.header('x-stats-team')) {
+    let storage = multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, `${__dirname}/public/robots`)
+      },
+      filename: (req, file, cb) => {
+        cb(null, `${req.header('x-stats-team')}-${Date.now()}.${utils.resolveJPGExtension(file.originalname.split('.')[file.originalname.split('.').length -1])}`)
+      }
+    });
+    let upload = multer({
+      storage
+    }).all();
+    upload(req, res, (err) => {
+      if (err) {
+        return console.error(err)
+      } else {
+        customRes.success(res);
+      }
+    })
+  } else {
+    customRes.invalidHeaders(res);
+  }
 })
 
 app.listen(port, () => {

@@ -24,14 +24,19 @@ router.get('/matchPredictions', (req, res) => {
   res.sendFile(path.join(__dirname, '/../', 'public', 'matchPrediction.html'))
 })
 
+// send custom match schedule in case TBA doesn't have one
+router.get('/schedule', (req, res) => {
+  res.sendFile(path.join(__dirname, '/../', 'public', 'schedule.json'));
+})
+
 // get data submitted from scouting app
-router.put('/data', (req, res) => {
+router.put('/data/match', (req, res) => {
   // TODO: Finish once build season starts
 })
 
-// send custom match schedule in case TBA doesn't have one
-router.get('/schedule', (req, res) => {
-  res.sendFile(`${__dirname}/../public/schedule.json`);
+// get submitted shooting data
+router.put('/data/shooting', (req, res) => {
+
 })
 
 // Send urls to the images

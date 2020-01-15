@@ -1,0 +1,23 @@
+<html>
+
+<head>
+  <title>Sketchpad</title>
+  <link rel="stylesheet" href="stylesheets/map.css">
+  <script type="text/javascript" src="scripts/map.js"></script>
+</head>
+
+<body onload="init()" id="body">
+  <div id="sketchpadapp">
+    <input type="submit" id="clear" value="Clear Sketchpad" onclick="clearCanvas(canvas,ctx);">
+    <input type="button" id="create" value="Recreate Heatmap">
+    <div class="rightside">
+      <canvas id="sketchpad" height="600" width="800"></canvas>
+      <div style="display: none">
+        <img src="render.png" id="map">
+      </div>
+    </div>
+  </div>
+  <br>
+</body>
+
+</html>

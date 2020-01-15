@@ -9,6 +9,7 @@
 
 <script>
 import * as config from "../config.js";
+import charts from "chart.js";
 
 export default {
   name: "dashboard",

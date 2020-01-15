@@ -3,6 +3,17 @@
     <h1 class="text-success">Tools</h1>
     <hr />
     <div>
+      <h4>Climbing Calculator</h4>
+      <iframe
+        id="calculator"
+        src="http://samcfuchs.com/ClimbingSimulator"
+        scrolling="no"
+        frameborder="0"
+        seamless
+        height="1000"
+      ></iframe>
+    </div>
+    <div>
       <h4>ScoutBoss</h4>
       <p>ScoutBoss is a tool for seeing, calculating, and predicting event match results. The tool runs in the browser, but can also be downloaded and used locally.</p>
       <span>
@@ -71,5 +82,11 @@ export default {
 <style scoped>
 .spacing {
   margin-right: 20px;
+}
+#calculator {
+  min-width: 100%;
+  min-height: 80vh;
+  overflow: hidden;
+  color: #839496;
 }
 </style>

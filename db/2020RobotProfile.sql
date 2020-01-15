@@ -1,0 +1,25 @@
+CREATE TABLE RobotProfiles2020 (
+  team INT,
+  FRCweek INT,
+  drivetrainType VARCHAR(50),
+  drivetrainMotors VARCHAR(50),
+  -- cellStorageType VARCHAR(50),
+  -- cellCollection VARCHAR(100),
+  cellMaxStorage INT,
+  lowerGoal BOOLEAN,
+  outerGoal BOOLEAN,
+  innerGoal BOOLEAN,
+  robotWeight NUMERIC,
+  robotHeight NUMERIC,
+  trench BOOLEAN,
+  hang BOOLEAN,
+  slantedHang BOOLEAN,
+  wheelPosition BOOLEAN,
+  wheelRotation BOOLEAN,
+  hangMaxReach NUMERIC,
+  buddyHang BOOLEAN,
+  shootingPos VARCHAR(500),
+  notes VARCHAR(1000),
+
+  PRIMARY KEY (team, FRCweek)
+)

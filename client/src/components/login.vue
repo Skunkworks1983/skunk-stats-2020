@@ -78,8 +78,8 @@ export default {
       })
         .then(res => {
           this.requestSuccess = true;
-          sessionStorage.setItem("token", res.data.token);
-          sessionStorage.setItem("name", res.data.user);
+          localStorage.setItem("token", res.data.token);
+          localStorage.setItem("name", res.data.user);
           setTimeout(() => {
             this.$router.push({ path: "/" });
           }, 1000);

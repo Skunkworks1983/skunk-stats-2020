@@ -18,8 +18,8 @@ export default {
   },
   computed: {
     user: () => {
-      if (sessionStorage.getItem("name")) {
-        return sessionStorage.getItem("name");
+      if (localStorage.getItem("name")) {
+        return localStorage.getItem("name");
       }
     }
   }

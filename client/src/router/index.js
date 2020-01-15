@@ -81,6 +81,13 @@ const routes = [{
     component: () => {
       return import( /* webpackChunkName: "pitScouting" */ '../views/PitScouting.vue')
     }
+  },
+  {
+    path: '/manage',
+    name: 'User Account Management',
+    component: () => {
+      return import( /* webpackChunkName: "userManage" */ '../views/ManageUser.vue')
+    }
   }
 ]
 

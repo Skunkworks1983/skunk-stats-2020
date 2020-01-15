@@ -1,19 +1,48 @@
 // This router is for serving up statistical info
-var express = require('express');
-var jstat = require('jstat').jStat;
-var Worker = require('tiny-worker');
-var customRes = require('../lib/customResponses');
-var matchDB = require('../lib/matchesDB');
+const express = require('express');
+const {
+  jstat
+} = require('jstat');
+const utils = require('../lib/utils');
+const {
+  Worker
+} = require('worker_threads');
+const customRes = require('../lib/customResponses');
+const matchDB = require('../lib/matchesDB');
 
-var router = express.Router();
+const router = express.Router();
 
 // get team averages for the whole event
 router.get('/event/averages', (req, res) => {
   if (req.header('x-stats-event-code')) {
-    // calculate by passing to a worker
+    matchDB.query(`SELECT * FROM matches2020 WHERE eventName = '${utils.escape()}'`, (err, result) => {
+
+    })
+    const worker = new Worker('../lib/worker.js', {
+      event: req.header('x-stats-event-code')
+    });
+    worker.on('message', () => {
+      // TODO
+    });
+    worker.on('error', () => {
+      // TODO
+    });
+    worker.on('exit', () => {
+      // TODO
+    });
   } else {
     customRes.invalidHeaders();
   }
+})
+
+// Get shooting data for 3 robots
+router.get('/shooting/alliance', (req, res) => {
+
+})
+
+// Get shooting data on 1 robot
+router.get('/shooting/robot', (req, res) => {
+
 })
 
 module.exports = router;

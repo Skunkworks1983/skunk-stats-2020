@@ -70,6 +70,9 @@
               <li>
                 <router-link to="/register">Register</router-link>
               </li>
+              <li>
+                <router-link to="/manage">Account Management</router-link>
+              </li>
             </ul>
           </li>
           <li>
@@ -328,6 +331,37 @@ ul ul a {
 /* .slide-fade-leave-active below version 2.1.8 */ {
   transform: translateX(10px);
   opacity: 0;
+}
+
+/* Form items */
+.form-control:invalid:focus {
+  border-color: #d33682;
+  -webkit-box-shadow: 0 0 0 0.2rem rgba(211, 54, 130, 0.65);
+  box-shadow: 0 0 0 0.2rem rgba(211, 54, 130, 0.65);
+}
+
+.form-control:invalid {
+  border-color: #d33682;
+  padding-right: calc(1.5em + 0.75rem);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23D33682' viewBox='-2 -2 7 7'%3e%3cpath stroke='%23D33682' d='M0 0l3 3m0-3L0 3'/%3e%3ccircle r='.5'/%3e%3ccircle cx='3' r='.5'/%3e%3ccircle cy='3' r='.5'/%3e%3ccircle cx='3' cy='3' r='.5'/%3e%3c/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center right calc(0.375em + 0.1875rem);
+  background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.form-control:valid:focus {
+  border-color: #2aa198;
+  -webkit-box-shadow: 0 0 0 0.2rem rgba(42, 161, 152, 0.65);
+  box-shadow: 0 0 0 0.2rem rgba(42, 161, 152, 0.65);
+}
+
+.form-control:valid {
+  border-color: #2aa198;
+  padding-right: calc(1.5em + 0.75rem);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%232AA198' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: center right calc(0.375em + 0.1875rem);
+  background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
 }
 </style>
 

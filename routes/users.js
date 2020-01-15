@@ -82,4 +82,8 @@ router.get('/testAuth', usersMiddleware.protectedRoute, (req, res) => {
   res.status(200).send('Authorized')
 })
 
+router.delete('/manage', usersMiddleware.protectedRoute, (req, res) => {
+  // TODO
+})
+
 module.exports = router;
