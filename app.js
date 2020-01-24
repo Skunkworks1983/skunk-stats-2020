@@ -1,4 +1,4 @@
-#!/home/ubuntu/.nvm/versions/node/v12.13.0/bin/node
+#!/home/ubuntu/.nvm/versions/node/v13.6.0/bin/node
 
 const express = require('express');
 const path = require('path');

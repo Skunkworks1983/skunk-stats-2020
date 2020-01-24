@@ -25,6 +25,7 @@ const store = new Vuex.Store({
 
 new Vue({
   router,
+  store,
   render: h => {
     return h(App)
   }

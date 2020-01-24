@@ -1,8 +1,7 @@
 CREATE TABLE shootingData (
+  gamePhase VARCHAR(4),
   team INT,
-  FRCweek INT,
   hitPercent NUMERIC,
   xpos NUMERIC,
-  ypos NUMERIC,
-  autoMode BOOLEAN,
+  ypos NUMERIC
 )
