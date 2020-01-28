@@ -1,11 +1,12 @@
 <template>
   <div class="user">
-    <h1>Account Management</h1>
+    <h1>Account Management ~ WIP</h1>
     <hr />
     <div class="container">
       <div class="box">
         <h3>Details</h3>
         <hr />
+        <p>Account Details</p>
         <p v-if="loggedIn">Name: {{name}}</p>
       </div>
       <div class="box">
@@ -17,6 +18,7 @@
         <h3>Logout</h3>
         <hr />
         <p>End the current user session and wipe user information from this client.</p>
+        <button class="btn btn-outline-success" @click="logout">Logout</button>
       </div>
     </div>
   </div>
@@ -28,9 +30,23 @@ import axios from "axios";
 export default {
   name: "UserManagement",
   data() {
-    loggedIn: null;
+    return {};
   },
-  computed: {}
+  computed: {
+    name() {
+      return this.$store.name;
+    },
+    loggedIn() {
+      return this.$store.token ? true : false;
+    }
+  },
+  methods: {
+    deleteUser() {},
+    logout() {
+      this.$store.dispatch("logout");
+      this.$router.push({ path: "/login" });
+    }
+  }
 };
 </script>
 

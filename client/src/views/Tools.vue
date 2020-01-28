@@ -88,5 +88,6 @@ export default {
   min-height: 80vh;
   overflow: hidden;
   color: #839496;
+  background: white;
 }
 </style>

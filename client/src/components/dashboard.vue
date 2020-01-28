@@ -1,47 +1,62 @@
 <template>
-  <div class="dashboard">
-    <h1>Team {{ requestedTeam }}</h1>
-    <span>
-      <p v-if="error">Error: {{error}}</p>
-    </span>
+  <div>
+    <h1>Team {{team}}</h1>
+    <transition>
+      <template v-if="heatmapHistory">
+        <h5>Shooting Positions</h5>
+        <heatmap :team1History="heatmapHistory"></heatmap>
+      </template>
+    </transition>
   </div>
 </template>
 
 <script>
-import * as config from "../config.js";
-import charts from "chart.js";
+import heatmap from "@/components/teamHeatmap.vue";
 
 export default {
   name: "dashboard",
-  params: {
-    requestedTeam: Number
-  },
   data() {
-    team: null;
-    images: null;
-    error: null;
+    return {
+      TBAData: null,
+      imagePaths: null,
+      heatmapHistory: null,
+      data: null
+    };
   },
-  methods: {
-    onSubmit() {
-      // check for valid auth
-    },
-    getImages() {
-      axios({
-        method: "GET",
-        url: `${config.hostname}/users/register`
-      })
-        .then(res => {
-          images = JSON.parse(res.body);
-        })
-        .catch(err => {
-          error = err;
-        });
+  components: {
+    heatmap
+  },
+  computed: {
+    team() {
+      return this.$store.state.team;
     }
   },
+  methods: {
+    getTeamInfo() {
+      // get tba info
+    },
+    getHeatmap() {
+      // get heatmap info
+    },
+    getImagePaths() {
+      // get image paths
+    },
+    loadNewTeam() {
+      this.getTeamInfo();
+      this.getHeatmap();
+      this.getImagePaths();
+    }
+  },
+  mounted() {
+    this.getTeamInfo();
+  },
   watch: {
-    requestedTeam: function(val, oldVal) {
-      // repeat the request and update the page
+    team: () => {
+      this.loadNewTeam();
     }
   }
 };
 </script>
+
+<style>
+</style>

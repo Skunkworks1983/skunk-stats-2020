@@ -67,7 +67,7 @@ export default {
       this.statusText = null;
       this.requestError = null;
       this.requestSuccess = null;
-      var credentials = {
+      let credentials = {
         username: this.username,
         password: this.password
       };
@@ -78,8 +78,9 @@ export default {
       })
         .then(res => {
           this.requestSuccess = true;
-          localStorage.setItem("token", res.data.token);
-          localStorage.setItem("name", res.data.user);
+          let token = res.data.token;
+          let name = res.data.user;
+          this.$store.dispatch("login", { token, name });
           setTimeout(() => {
             this.$router.push({ path: "/" });
           }, 1000);

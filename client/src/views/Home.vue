@@ -17,10 +17,8 @@ export default {
     return {};
   },
   computed: {
-    user: () => {
-      if (localStorage.getItem("name")) {
-        return localStorage.getItem("name");
-      }
+    user() {
+      return this.$store.state.name;
     }
   }
 };

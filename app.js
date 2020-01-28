@@ -8,6 +8,8 @@ const logger = require('morgan');
 const keys = require('./key');
 // For file system operations
 const fs = require('fs');
+// body parser
+const bodyParser = require('body-parser');
 // grab custom util functions
 const utils = require('./lib/utils');
 // grab custom responses
@@ -42,6 +44,8 @@ app.use(express.json());
 app.use(express.urlencoded({
   extended: false
 }));
+app.use(bodyParser.json());
+// app.use(bodyParser.urlencoded());
 app.use(cookieParser());
 // Allow serving of client
 app.use(express.static(path.join(__dirname, 'client', 'dist')));
@@ -53,13 +57,61 @@ app.use(helmet());
 app.disable('x-powered-by');
 app.use(rateLimit);
 
+// Testing purposes
+// const cors = require('cors');
+// app.use(cors());
+
 // enable routes
 app.use('/users', usersRouter);
 app.use('/stats', statsRouter);
 app.use('/scouting', scoutingRouter);
 
+// add static file routes here
 app.get('/map', (req, res) => {
   res.sendFile(path.join(__dirname, 'prototypes', 'map.html'));
+})
+
+// recieve pit scouting data
+app.post('/pit/upload', usersMiddleware.protectedRoute, (req, res) => {
+  matchesDB.query(`INSERT INTO RobotProfiles2020 VALUES (${utils.escape(req.body.team)}, '${utils.escape(req.body.drivetrainType)}', '${utils.escape(req.body.drivetrainMotors)}', ${utils.escape(req.body.cellCount)}, ${utils.escape(req.body.lowerGoal)}, ${utils.escape(req.body.outerGoal)}, ${utils.escape(req.body.innerGoal)}, ${utils.escape(req.body.weight)}, ${utils.escape(req.body.height)}, ${utils.escape(req.body.trench)}, ${utils.escape(req.body.hang)}, ${utils.escape(req.body.position)}, ${utils.escape(req.body.rotation)}, ${utils.escape(req.body.buddyHang)}, '${utils.escape(req.body.notes)}');`, (err, result) => {
+    if (err) {
+      if (err.errno === 1062) {
+        customRes.dbDuplicate(res);
+      } else {
+        customRes.serverError(res);
+        return console.warn(err);
+      }
+    } else {
+      customRes.success(res);
+    }
+  })
+})
+
+// recieve pit scouting images
+app.post('/pit/upload/images', usersMiddleware.protectedRoute, (req, res) => {
+  if (req.header('x-stats-team')) {
+    let storage = multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, 'public', 'robots'));
+      },
+      filename: (req, file, cb) => {
+        cb(null, `${req.header('x-stats-team')}-${Date.now()}.${utils.resolveJPGExtension(file.originalname.split('.')[file.originalname.split('.').length - 1])}`)
+      }
+    });
+    let upload = multer({
+      storage: storage
+    }).array('files', 12);
+    upload(req, res, (err) => {
+      if (err) {
+        return console.error(err)
+      } else {
+        customRes.success(res);
+        customRes.success(res)
+      }
+    })
+  } else {
+    customRes.invalidHeaders(res);
+  }
 })
 
 // must be at the bottom to ensure no endpoints are missed
@@ -69,51 +121,11 @@ app.use(history({
 
 module.exports = app;
 
-let robotUpload = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, `${__dirname}/public/robots`)
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${__dirname}/`)
-  }
-})
-
 // Send SPA
-app.get('/', (req, res, next) => {
+app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
 });
 
-// recieve pit scouting data
-app.post('/pit/upload', usersMiddleware.protectedRoute, (req, res) => {
-
-})
-
-// recieve pit scouting images
-// add multer
-app.post('/pit/upload/images', usersMiddleware.protectedRoute, (req, res) => {
-  if (req.header('x-stats-team')) {
-    let storage = multer.diskStorage({
-      destination: (req, file, cb) => {
-        cb(null, `${__dirname}/public/robots`)
-      },
-      filename: (req, file, cb) => {
-        cb(null, `${req.header('x-stats-team')}-${Date.now()}.${utils.resolveJPGExtension(file.originalname.split('.')[file.originalname.split('.').length -1])}`)
-      }
-    });
-    let upload = multer({
-      storage
-    }).all();
-    upload(req, res, (err) => {
-      if (err) {
-        return console.error(err)
-      } else {
-        customRes.success(res);
-      }
-    })
-  } else {
-    customRes.invalidHeaders(res);
-  }
-})
 
 app.listen(port, () => {
   console.log(`Skunk-Stats running on port ${port}.`)

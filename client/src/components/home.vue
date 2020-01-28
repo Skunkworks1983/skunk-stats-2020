@@ -8,9 +8,6 @@
       </div>
     </div>
     <hr />
-    <!-- <parallax>
-      <img src="../assets/2014.svg" alt="Scouts" class="parallax" />
-    </parallax>-->
     <div>
       <h2>What is Skunk-Stats?</h2>
       <p>
@@ -35,7 +32,6 @@
 </template>
 
 <script>
-// import Parallax from "vue-parallaxy";
 export default {
   name: "homePage",
   props: {
@@ -44,10 +40,7 @@ export default {
   data() {
     return {};
   },
-  methods: {},
-  components: {
-    // Parallax
-  }
+  methods: {}
 };
 </script>
 

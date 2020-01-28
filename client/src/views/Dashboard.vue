@@ -1,31 +1,32 @@
 <template>
   <div class="dashboard-page">
     <h1 class="text-success">Team Dashboards</h1>
-    <form class="dashboard-team" @submit.prevent="getDash()">
+    <form class="dashboard-team" @submit.prevent="setTeam">
       <span>
-        <!-- <label for="team">Team Number</label> -->
         <input
           type="number"
           class="form-control"
           required
           min="1"
           max="9999"
-          placeholder="Team Number"
+          v-bind:placeholder="team ? team : 'Team Number'"
           v-model="requestedTeam"
         />
         <br />
-        <button type="submit" class="btn btn-outline-success">Submit</button>
+        <button type="submit" class="btn btn-outline-success" v-bind:disabled="!loggedIn">Submit</button>
       </span>
     </form>
+    <p v-if="!loggedIn" class="text-danger">You must be logged in to use this feature</p>
     <hr />
     <transition name="slide">
-      <p v-if="revealInfo">stuff</p>
-      <dashboard v-if="revealInfo" v-bind:requestedTeam="team" />
+      <dashboard v-bind:team="team" v-if="team"></dashboard>
+      <p v-if="error">Error: {{error}}</p>
     </transition>
   </div>
 </template>
 
 <script>
+import * as config from "../config.js";
 import dashboard from "@/components/dashboard.vue";
 
 export default {
@@ -36,25 +37,23 @@ export default {
   data() {
     return {
       requestedTeam: null,
-      revealInfo: null,
-      componentLoading: null,
-      team: null
+      error: null
     };
   },
-  computed: {},
   methods: {
-    getDash() {
-      if (this.revealInfo == null) {
-        this.team = this.revealInfo;
-        // Once done loading
-        this.revealInfo = true;
-      } else if (this.revealInfo) {
-        // check if component is done loading new data
-        // reveal it once it is complete
-      }
+    setTeam() {
+      this.$store.commit("setTeam", this.requestedTeam);
     }
   },
-  created: {}
+  computed: {
+    team() {
+      return this.$store.state.team;
+    },
+    loggedIn() {
+      return this.$store.state.name;
+    }
+  },
+  mounted() {}
 };
 </script>
 

@@ -2,7 +2,8 @@
   <div class="pitForm">
     <h1 class="text-success">Pit Scouting Form</h1>
     <hr />
-    <form enctype="multi-part/form-data" class="pit-form" @submit.prevent="onSubmit()">
+    <!-- Remove novalidate after bugs are gone -->
+    <form enctype="multi-part/form-data" class="pit-form" @submit.prevent="onSubmit" ref="form">
       <div class="form-group">
         <label for="team">Team Number</label>
         <input
@@ -65,6 +66,7 @@
             type="number"
             placeholder="45 inches"
             min="0"
+            max="45"
             name="height"
             required
             v-model="height"
@@ -79,35 +81,44 @@
             min="0"
             name="weight"
             required
+            placeholder="125 lbs"
             v-model="weight"
             class="form-control"
           />
         </div>
       </div>
-      <!-- <div class="form-group">
-        <div class="form-group">
-          <label for="cellStorage">Cell Storage Type</label>
-          <input
-            type="text"
-            name="cellStorage"
-            v-model="cellStorage"
-            class="form-control"
-            required
-            placeholder="Cell Storage Mechanism"
-          />
+      <fieldset>
+        <div class="twocol">
+          <div class="form-group">
+            <input type="checkbox" name="lowerGoal" v-model="lowerGoal" id="lowerGoal" />
+            <label class="custom-control-label" for="lowerGoal">
+              <span class="ui"></span>
+              Lower Goal
+            </label>
+          </div>
+          <div class="form-group">
+            <input type="checkbox" name="outerGoal" v-model="outerGoal" id="outerGoal" />
+            <label class="custom-control-label" for="outerGoal">
+              <span class="ui"></span>
+              Outer Goal
+            </label>
+          </div>
+          <div class="form-group">
+            <input type="checkbox" name="innerGoal" v-model="innerGoal" id="innerGoal" />
+            <label class="custom-control-label" for="innerGoal">
+              <span class="ui"></span>
+              Inner Goal
+            </label>
+          </div>
+          <div class="form-group">
+            <input type="checkbox" name="trench" v-model="trench" id="trench" />
+            <label class="custom-control-label" for="trench">
+              <span class="ui"></span>
+              Trench Runner
+            </label>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="cellCollection">Cell Collection</label>
-          <input
-            type="text"
-            name="cellCollection"
-            v-model="cellCollection"
-            class="form-control"
-            required
-            placeholder="Cell Collection Mechanism"
-          />
-        </div>
-      </div>-->
+      </fieldset>
       <div class="form-group">
         <label for="cellCount">Max Cell Storage</label>
         <input
@@ -121,27 +132,45 @@
           class="form-control"
         />
       </div>
+      <!-- <div class="form-group">
+				<label for="cellCollection"></label>
+				<select multiple class="form-control" v-model="cellCollection">
+					<option value="Lower Loading Station">Lower Loading Station</option>
+					<option value="Upper Loading Station">Upper Loading Station</option>
+					<option value="Trench Run">Trench Run</option>
+					<option value=""></option>
+				</select>
+      </div>-->
       <fieldset>
-        <div class="form-group">
-          <input type="checkbox" name="lowerGoal" v-model="lowerGoal" required id="lowerGoal" />
-          <label class="custom-control-label" for="lowerGoal">
-            <span class="ui"></span>
-            Lower Goal
-          </label>
-        </div>
-        <div class="form-group">
-          <input type="checkbox" name="outerGoal" v-model="outerGoal" required id="outerGoal" />
-          <label class="custom-control-label" for="outerGoal">
-            <span class="ui"></span>
-            Outer Goal
-          </label>
-        </div>
-        <div class="form-group">
-          <input type="checkbox" name="innerGoal" v-model="innerGoal" required id="innerGoal" />
-          <label class="custom-control-label" for="innerGoal">
-            <span class="ui"></span>
-            Inner Goal
-          </label>
+        <div class="twocol">
+          <div class="form-group">
+            <input type="checkbox" name="rotation" v-model="rotation" id="rotation" />
+            <label class="custom-control-label" for="rotation">
+              <span class="ui"></span>
+              Rotation Task
+            </label>
+          </div>
+          <div class="form-group">
+            <input type="checkbox" name="position" v-model="position" id="position" />
+            <label class="custom-control-label" for="position">
+              <span class="ui"></span>
+              Position Task
+            </label>
+          </div>
+          <div class="form-group">
+            <input type="checkbox" name="hang" v-model="hang" id="hang" />
+            <label class="custom-control-label" for="hang">
+              <span class="ui"></span>
+              Hang
+            </label>
+          </div>
+          <div class="form-group">
+            <input type="checkbox" name="buddyHang" v-model="buddyHang" id="buddyHang" />
+            <label class="custom-control-label" for="buddyHang">
+              <span class="ui"></span>
+              Buddy Hang
+            </label>
+          </div>
         </div>
       </fieldset>
       <div class="form-group">
@@ -160,19 +189,22 @@
         <div class="custom-file">
           <input
             type="file"
-            accept="image/jpg"
+            accept="image/jpeg"
             class="custom-file-input"
             name="robot-image"
             multiple
             required
+            ref="files"
           />
           <label class="custom-file-label" for="inputGroupFile02">Upload Robot Images</label>
         </div>
         <div class="input-group-append">
-          <button type="submit" class="btn btn-primary" :disabled="!loggedIn">Submit</button>
+          <button type="submit" class="btn btn-primary" :disabled="!name">Submit</button>
         </div>
       </div>
-      <p v-if="!loggedIn" class="text-danger">You must be logged in to use this feature.</p>
+      <p v-if="!name" class="text-danger">You must be logged in to use this feature.</p>
+      <p v-if="imageUploadErr" class="text-danger">Error: {{imageUploadErr}}</p>
+      <p v-if="formUploadErr" class="text-danger">Error: {{formUploadErr}}</p>
     </form>
   </div>
 </template>
@@ -189,13 +221,17 @@ export default {
       drivetrainType: "6-Wheel Tank",
       drivetrainMotors: null,
       height: null,
-      weight: 125,
+      weight: null,
       cellCount: null,
       lowerGoal: null,
       outerGoal: null,
       innerGoal: null,
+      trench: null,
+      hang: null,
+      buddyHang: null,
+      position: null,
+      rotation: null,
       notes: null,
-      loggedIn: false,
       imageUploadErr: null,
       formUploadErr: null
     };
@@ -207,44 +243,58 @@ export default {
         method: "POST",
         url: `${config.hostname}/pit/upload`,
         data: {
-          drivetrainType,
-          drivetrainMotors
+          team: this.team,
+          drivetrainType: this.drivetrainType,
+          drivetrainMotors: this.drivetrainMotors,
+          height: this.height,
+          weight: this.weight,
+          cellCount: this.cellCount,
+          lowerGoal: this.lowerGoal ? true : false,
+          outerGoal: this.outerGoal ? true : false,
+          innerGoal: this.innerGoal ? true : false,
+          trench: this.trench ? true : false,
+          hang: this.hang ? true : false,
+          buddyHang: this.buddyHang ? true : false,
+          position: this.position ? true : false,
+          rotation: this.rotation ? true : false,
+          notes: this.notes
         }
       })
         .then(res => {})
-        .catch(err => {});
+        .catch(err => {
+          console.warn(err);
+          this.formUploadErr = err.response.status + err.response.data;
+        });
       // image upload
       axios({
         method: "POST",
-        url: `${config.hostname}/pit/upload/images`
-      });
+        url: `${config.hostname}/pit/upload/images`,
+        data: this.getFiles(),
+        headers: {
+          "x-stats-team": this.team
+        }
+      })
+        .then(res => {
+          this.$refs.form.reset();
+        })
+        .catch(err => {
+          console.warn(err);
+          this.imageUploadErr = err.response.status + err.response.data;
+        });
     },
-    imageUpload() {
-      // TODO
-    },
-    isLoggedIn() {
-      if (localStorage.getItem("name") && localStorage.getItem("token")) {
-        this.loggedIn = true;
-      } else {
-        this.loggedIn = false;
+    getFiles() {
+      let upload = new FormData();
+      let filesReady = this.$refs.files.files;
+      for (let i = 0; i < filesReady.length; i++) {
+        upload.append("files", filesReady[i], filesReady[i].name);
       }
+      return upload;
     }
   },
   computed: {
-    name: () => {
-      if (localStorage.getItem("name")) {
-        return localStorage.getItem("name");
-      }
-    },
-    submittable: () => {
-      return {
-        disabled: !this.loggedIn
-      };
+    name() {
+      return this.$store.state.name;
     }
-  },
-  mounted() {
-    // check if signed in
-    this.isLoggedIn();
   }
 };
 </script>
@@ -260,6 +310,10 @@ optgroup {
 input,
 select {
   cursor: pointer;
+}
+
+.twocol {
+  display: block;
 }
 
 [type="checkbox"]:not(:checked),
@@ -286,7 +340,7 @@ select {
   top: 0;
   width: 80px;
   height: 30px;
-  background: #dddddd;
+  background: #a9bdbd;
   border-radius: 4px;
   transition: background-color 0.2s;
 }
@@ -296,7 +350,7 @@ select {
   height: 30px;
   transition: all 0.2s;
   border-radius: 4px 0 0 4px;
-  background: #7f8c9a;
+  background: #658ba0;
   top: 0;
   left: 0;
 }
@@ -348,6 +402,15 @@ select {
   }
   fieldset > div.form-group {
     flex: 1 !important;
+  }
+
+  .twocol {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .twocol > div {
+    width: 30vw;
   }
 }
 </style>

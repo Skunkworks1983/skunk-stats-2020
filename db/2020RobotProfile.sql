@@ -1,15 +1,13 @@
 CREATE TABLE RobotProfiles2020 (
   -- Team Number
   team INT,
-  -- FRC Comp Week
-  FRCweek INT,
   -- What type of drivetrain
   drivetrainType VARCHAR(50),
     -- What type of motors on the drivetrain
   drivetrainMotors VARCHAR(50),
   -- cellStorageType VARCHAR(50),
   -- Where can they collect from
-  cellCollection VARCHAR(100),
+  -- cellCollection VARCHAR(100),
   -- Maximum cells carried
   cellMaxStorage INT,
   -- Can shoot in the lower goal
@@ -30,12 +28,10 @@ CREATE TABLE RobotProfiles2020 (
   wheelPosition BOOLEAN,
   -- Can do wheel rotation
   wheelRotation BOOLEAN,
-  -- Maximum extension for hanging
-  hangMaxReach NUMERIC,
   -- Can bring up another robot with themselves
   buddyHang BOOLEAN,
   -- Misc
   notes VARCHAR(1000),
 
-  PRIMARY KEY (team, FRCweek)
+  PRIMARY KEY (team)
 )

@@ -1,27 +1,20 @@
 import Vue from 'vue'
 import App from './App.vue'
-import router from './router'
-import Vuex from 'vuex'
-import BootstrapVue from 'bootstrap-vue'
+import router from './router/router'
+import store from './store/store'
+import modal from 'vue-js-modal'
+// import BootstrapVue from 'bootstrap-vue'
+import Axios from 'axios'
 
-Vue.config.productionTip = false;
+Vue.config.productionTip = false
 
 import './assets/stylesheets/bootstrap.min.css'
 // import 'bootstrap-vue/dist/bootstrap-vue.css'
 
-Vue.use(Vuex);
-Vue.use(BootstrapVue);
+Axios.defaults.headers.common['Authorization'] = `Bearer ${store.state.token}`
 
-// Vuex store
-const store = new Vuex.Store({
-  state: {
-    count: 0
-  },
-  mutations: {
-    increment: state => state.count++,
-    decrement: state => state.count--
-  }
-})
+// Vue.use(BootstrapVue)
+Vue.use(modal)
 
 new Vue({
   router,
