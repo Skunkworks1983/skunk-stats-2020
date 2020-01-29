@@ -90,19 +90,17 @@ router.put('/data/shooting', (req, res) => {
 
 // Send urls to the images
 router.get('/robot', (req, res) => {
-  if (req.header('team')) {
-    // Find all files matching the glob
-    glob(`${__dirname}/../public/robots/${req.header('team')}*.jpg`, (err, files) => {
-      console.log(files);
+  if (req.header('x-stats-team')) {
+    glob(`${__dirname}/../public/robots/${req.header('x-stats-team')}*.jpg`, (err, files) => {
       if (err) {
         console.warn(err);
         customRes.serverError(res);
       } else if (files.length > 0) {
-        absPaths = [];
-        files.forEach(element => absPaths.push(`${customRes.path}/public/robots/${element}`));
+        let absPaths = [];
+        files.forEach(element => absPaths.push(`http://${customRes.path}/robots/${element.split('/').pop()}`));
         res.send(JSON.stringify(absPaths));
       } else {
-        res.send(JSON.stringify([`${customRes.path}/robots/default.jpg`]));
+        res.send(JSON.stringify([`http://${customRes.path}/robots/default.jpg`]));
       }
     })
   } else {

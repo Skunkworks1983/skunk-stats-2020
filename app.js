@@ -58,8 +58,8 @@ app.disable('x-powered-by');
 app.use(rateLimit);
 
 // Testing purposes
-// const cors = require('cors');
-// app.use(cors());
+const cors = require('cors');
+app.use(cors());
 
 // enable routes
 app.use('/users', usersRouter);

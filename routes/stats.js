@@ -4,6 +4,7 @@ const utils = require('../lib/utils');
 const {
   Worker
 } = require('worker_threads');
+const usersMiddleware = require('../lib/userMiddleware');
 const customRes = require('../lib/customResponses');
 const matchesDB = require('../lib/matchesDB');
 
@@ -32,7 +33,7 @@ router.get('/event/averages', (req, res) => {
 })
 
 // Get shooting data for 3 robots
-router.get('/shooting/alliance', (req, res) => {
+router.get('/shooting/alliance', usersMiddleware.protectedRoute, (req, res) => {
   if (req.header('x-stats-teams')) {
 
   } else {
@@ -41,12 +42,29 @@ router.get('/shooting/alliance', (req, res) => {
 })
 
 // Get shooting data on 1 robot
-router.get('/shooting/robot', (req, res) => {
+router.get('/shooting/robot', usersMiddleware.protectedRoute, (req, res) => {
   if (req.header('x-stats-team')) {
-    matchesDB.query(`SELECT * FROM matches2020 WHERE team='${utils.escape(req.header('x-stats-team'))}';`, (err, result) => {
+    matchesDB.query(`SELECT * FROM shootingData WHERE team='${utils.escape(req.header('x-stats-team'))}';`, (err, result) => {
       if (err) {
-        console.error(err)
+        console.error(err);
+        customRes.serverError(res);
       } else {
+        res.status(200).json(result);
+      }
+    })
+  } else {
+    customRes.invalidHeaders(res);
+  }
+})
+
+router.get('/pit', usersMiddleware.protectedRoute, (req, res) => {
+  if (req.header('x-stats-team')) {
+    matchesDB.query(`SELECT * FROM RobotProfiles2020 WHERE team=${utils.escape(req.header('x-stats-team'))};`, (err, result) => {
+      if (err) {
+        console.warn(err);
+        customRes.serverError(res);
+      } else {
+        console.log(result);
         res.status(200).json(result);
       }
     })

@@ -1,5 +1,5 @@
 <template>
-  <div class="heatmap">
+  <div class="heatmap-container">
     <canvas class="heatmap" ref="heatmap" :width="width" :height="height"></canvas>
   </div>
 </template>
