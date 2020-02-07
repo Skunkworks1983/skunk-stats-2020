@@ -157,7 +157,7 @@ export default {
           password: this.password,
           username: this.username
         };
-        this.$emit("registration-submitted", registration);
+        // this.$emit("registration-submitted", registration);
         axios({
           method: "POST",
           url: `${config.hostname}/users/register`,

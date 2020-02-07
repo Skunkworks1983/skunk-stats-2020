@@ -18,7 +18,7 @@
     </form>
     <p v-if="!loggedIn" class="text-danger">You must be logged in to use this feature</p>
     <hr />
-    <transition name="slide">
+    <transition name="fade">
       <dashboard v-bind:team="team" v-if="team"></dashboard>
       <p v-if="error">Error: {{error}}</p>
     </transition>

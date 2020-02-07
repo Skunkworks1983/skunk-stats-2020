@@ -73,7 +73,7 @@ app.get('/map', (req, res) => {
 
 // recieve pit scouting data
 app.post('/pit/upload', usersMiddleware.protectedRoute, (req, res) => {
-  matchesDB.query(`INSERT INTO RobotProfiles2020 VALUES (${utils.escape(req.body.team)}, '${utils.escape(req.body.drivetrainType)}', '${utils.escape(req.body.drivetrainMotors)}', ${utils.escape(req.body.cellCount)}, ${utils.escape(req.body.lowerGoal)}, ${utils.escape(req.body.outerGoal)}, ${utils.escape(req.body.innerGoal)}, ${utils.escape(req.body.weight)}, ${utils.escape(req.body.height)}, ${utils.escape(req.body.trench)}, ${utils.escape(req.body.hang)}, ${utils.escape(req.body.position)}, ${utils.escape(req.body.rotation)}, ${utils.escape(req.body.buddyHang)}, '${utils.escape(req.body.notes)}');`, (err, result) => {
+  matchesDB.query(`INSERT INTO RobotProfiles2020 VALUES (${utils.escape(req.body.team)}, '${utils.escape(req.body.drivetrainType)}', '${utils.escape(req.body.drivetrainMotors)}', ${utils.escape(req.body.cellCount)}, ${utils.escape(req.body.lowerGoal)}, ${utils.escape(req.body.outerGoal)}, ${utils.escape(req.body.innerGoal)}, ${utils.escape(req.body.weight)}, ${utils.escape(req.body.height)}, ${utils.escape(req.body.trench)}, ${utils.escape(req.body.hang)}, ${utils.escape(req.body.position)}, ${utils.escape(req.body.rotation)}, ${utils.escape(req.body.buddyHang)}, '${utils.escape(req.body.notes)}', ${Date.now()});`, (err, result) => {
     if (err) {
       if (err.errno === 1062) {
         customRes.dbDuplicate(res);
@@ -95,7 +95,7 @@ app.post('/pit/upload/images', usersMiddleware.protectedRoute, (req, res) => {
         cb(null, path.join(__dirname, 'public', 'robots'));
       },
       filename: (req, file, cb) => {
-        cb(null, `${req.header('x-stats-team')}-${Date.now()}.${utils.resolveJPGExtension(file.originalname.split('.')[file.originalname.split('.').length - 1])}`)
+        cb(null, `${req.header('x-stats-team')}.${Date.now()}.${utils.resolveJPGExtension(file.originalname.split('.')[file.originalname.split('.').length - 1])}`)
       }
     });
     let upload = multer({
@@ -125,7 +125,6 @@ module.exports = app;
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
 });
-
 
 app.listen(port, () => {
   console.log(`Skunk-Stats running on port ${port}.`)

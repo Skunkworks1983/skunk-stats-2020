@@ -2,9 +2,9 @@ CREATE TABLE RobotProfiles2020 (
   -- Team Number
   team INT,
   -- What type of drivetrain
-  drivetrainType VARCHAR(50),
+  drivetrainType VARCHAR(100),
     -- What type of motors on the drivetrain
-  drivetrainMotors VARCHAR(50),
+  drivetrainMotors VARCHAR(100),
   -- cellStorageType VARCHAR(50),
   -- Where can they collect from
   -- cellCollection VARCHAR(100),
@@ -32,6 +32,8 @@ CREATE TABLE RobotProfiles2020 (
   buddyHang BOOLEAN,
   -- Misc
   notes VARCHAR(1000),
+  -- Date created
+  creationDate BIGINT,
 
-  PRIMARY KEY (team)
+  PRIMARY KEY (team, creationDate)
 )

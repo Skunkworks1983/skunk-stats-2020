@@ -3,6 +3,7 @@ stats.db
 dist/*
 test.css
 ScoutBoss.html
+public/
 
 # Logs
 logs/*

@@ -10,8 +10,8 @@ const defaultState = () => {
     team: null,
     match: null,
     event: null,
-    token: '',
-    name: ''
+    token: new String,
+    name: new String
   }
 }
 
@@ -36,6 +36,12 @@ export default new Vuex.Store({
     },
     setTeam: (state, team) => {
       state.team = team
+    },
+    setEvent: (state, event) => {
+      state.event = event
+    },
+    setMatch: (state, match) => {
+      state.match = match
     },
     reset: state => {
       Object.assign(state, defaultState());

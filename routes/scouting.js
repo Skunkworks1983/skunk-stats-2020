@@ -1,10 +1,8 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const fs = require('fs');
 const glob = require('glob');
 const utils = require('../lib/utils');
-const bodyParser = require('body-parser');
 const customRes = require('../lib/customResponses');
 const matchesDB = require('../lib/matchesDB');
 const keys = require('../key');
@@ -14,8 +12,6 @@ var router = express.Router();
 
 router.use(cors());
 router.options('*', cors());
-
-router.use(bodyParser.json());
 
 // send scoutBoss 
 router.get('/scoutBoss', (req, res) => {
@@ -59,7 +55,7 @@ router.put('/data/match', (req, res) => {
 router.put('/data/shooting', (req, res) => {
   if (req.header('x-stats-team')) {
     for (let i = 0; i < req.body.autoHistory.length; i++) {
-      matchesDB.query(`INSERT INTO shootingData VALUES ('auto', ${parseInt(utils.escape(req.header('x-stats-team')))}, ${utils.hitPercentage(req.body.autoShots[i])}, ${req.body.autoHistory[i].x}, ${req.body.autoHistory[i].y});`, (err, result) => {
+      matchesDB.query(`INSERT INTO shootingData VALUES ('auto', ${utils.escape(req.body.autoShots[i].week)}, ${parseInt(utils.escape(req.header('x-stats-team')))}, ${utils.hitPercentage(req.body.autoShots[i])}, ${req.body.autoHistory[i].x}, ${req.body.autoHistory[i].y});`, (err, result) => {
         if (err) {
           if (err.errno === 1062) {
             customRes.dbDuplicate(res);
@@ -71,7 +67,7 @@ router.put('/data/shooting', (req, res) => {
       })
     }
     for (let j = 0; j < req.body.teleHistory.length; j++) {
-      matchesDB.query(`INSERT INTO shootingData VALUES ('tele', ${parseInt(utils.escape(req.header('x-stats-team')))}, ${utils.hitPercentage(req.body.teleShots[j])}, ${req.body.teleHistory[j].x}, ${req.body.teleHistory[j].y});`, (err, result) => {
+      matchesDB.query(`INSERT INTO shootingData VALUES ('tele', ${utils.escape(req.body.teleShots[j].week)}, ${parseInt(utils.escape(req.header('x-stats-team')))}, ${utils.hitPercentage(req.body.teleShots[j])}, ${req.body.teleHistory[j].x}, ${req.body.teleHistory[j].y});`, (err, result) => {
         if (err) {
           if (err.errno === 1062) {
             customRes.dbDuplicate(res);
@@ -94,13 +90,14 @@ router.get('/robot', (req, res) => {
     glob(`${__dirname}/../public/robots/${req.header('x-stats-team')}*.jpg`, (err, files) => {
       if (err) {
         console.warn(err);
-        customRes.serverError(res);
+        return customRes.serverError(res);
       } else if (files.length > 0) {
-        let absPaths = [];
+        let absPaths = new Array;
         files.forEach(element => absPaths.push(`http://${customRes.path}/robots/${element.split('/').pop()}`));
-        res.send(JSON.stringify(absPaths));
+        // res.send(JSON.stringify(absPaths.sort((a, b) => b.split('.')[1] - a.split('.')[1])));
+        res.json(absPaths);
       } else {
-        res.send(JSON.stringify([`http://${customRes.path}/robots/default.jpg`]));
+        res.json([`http://${customRes.path}/robots/default.jpg`]);
       }
     })
   } else {
@@ -117,27 +114,25 @@ router.get('/tba', (req, res) => {
         headers: {
           'X-TBA-Auth-Key': keys.TBA_key,
           'User-Agent': 'Skunk-Stats'
-        },
-        validateStatus: status => {
-          return status == 200
         }
       })
       .then(response => {
         res.status(200).json(response.data);
       })
       .catch(err => {
-        console.log(err);
         if (err.response) {
-          customRes.TBAerror(res, err.response.status, err.response.data);
+          if (err.response.status === 304) {
+            return res.status(304).end()
+          } else {
+            return customRes.TBAerror(res, err.response.status, err.response.data);
+          }
         } else {
-          customRes.errorUnspecified(res);
+          console.log(err);
+          return customRes.errorUnspecified(res);
         }
       })
-      .finally(() => {
-        // Log the request
-      })
   } else {
-    customRes.invalidHeaders(res);
+    return customRes.invalidHeaders(res);
   }
 })
 
