@@ -11,7 +11,8 @@ export default {
   mixins: [reactiveProp],
   data() {
     return {
-      chart: null
+      chart: null,
+      legendMarkup: null
     }
   },
   computed: {
@@ -67,13 +68,13 @@ export default {
     }
   },
   props: {
-    chartTitle: String,
-    options: Object
+    chartTitle: String
   },
   mounted() {
     this.chart = this.chartData;
+    this.renderChart(this.chart, this.chartOptions);
     for (let i of this.chart.datasets) {
-      let gradient = this.ctx.createLinearGradient(0, 0, 900, 0);
+      let gradient = this.ctx.createLinearGradient(0, 0, this.$refs.canvas.width, 0);
       let color = this.hexToRgb(i.backgroundColor);
       gradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 0.5)`);
       gradient.addColorStop(0.5, `rgba(${color.r}, ${color.g}, ${color.b}, 0.25)`);
@@ -84,6 +85,6 @@ export default {
       i['pointBorderColor'] = "white";
       i['backgroundColor'] = gradient;
     }
-    this.renderChart(this.chart, this.chartOptions)
+    this.renderChart(this.chart, this.chartOptions);
   }
 };

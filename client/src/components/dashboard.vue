@@ -67,41 +67,6 @@
       </template>
     </transition>
     <transition name="fade">
-      <template v-if="analysis">
-        <div>
-          <h3>Analysis</h3>
-          <div>
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <td>#</td>
-                  <td>Low Goal</td>
-                  <td>Outer Goal</td>
-                  <td>Inner Goal</td>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Average Power Cells Scored</td>
-                  <td>{{analysis.stats.avgAutoLow}}</td>
-                  <td>{{analysis.stats.avgAutoOuter}}</td>
-                  <td>{{analysis.stats.avgAutoInner}}</td>
-                </tr>
-              </tbody>
-            </table>
-            <shootingChart
-              v-if="shootingDataset"
-              :chartData="shootingDataset"
-              :height="200"
-              :width="200"
-              chartTitle="Average Shots on Target - 1st row is Autonomous, 2nd is Teleop"
-            ></shootingChart>
-          </div>
-          <hr />
-        </div>
-      </template>
-    </transition>
-    <transition name="fade">
       <template v-if="history">
         <div>
           <h3>Heatmaps</h3>
@@ -169,6 +134,7 @@
           <div>
             <h5>Auto Shooting Positions</h5>
             <heatmap
+              class="shootingHeatmap"
               :history="history.filter(e => e.gamePhase === 'auto')"
               :showZero="showZero"
               :showTwo="showTwo"
@@ -190,6 +156,7 @@
           <div>
             <h5>Tele Shooting Positions</h5>
             <heatmap
+              class="shootingHeatmap"
               :history="history.filter(e => e.gamePhase === 'tele')"
               :showZero="showZero"
               :showTwo="showTwo"
@@ -223,6 +190,77 @@
         </div>
       </template>
     </transition>
+    <transition name="fade">
+      <template v-if="analysis">
+        <div>
+          <h3>Analysis</h3>
+          <div>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <td>#</td>
+                  <td>Low Goal</td>
+                  <td>Outer Goal</td>
+                  <td>Inner Goal</td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Auto Average Power Cells Scored</td>
+                  <td>{{analysis.stats.avgAutoLow.toFixed(2)}}</td>
+                  <td>{{analysis.stats.avgAutoOuter.toFixed(2)}}</td>
+                  <td>{{analysis.stats.avgAutoInner.toFixed(2)}}</td>
+                </tr>
+                <tr>
+                  <td>Tele Average Power Cells Scored</td>
+                  <td>{{analysis.stats.avgTeleLow.toFixed(2)}}</td>
+                  <td>{{analysis.stats.avgTeleOuter.toFixed(2)}}</td>
+                  <td>{{analysis.stats.avgTeleInner.toFixed(2)}}</td>
+                </tr>
+                <tr>
+                  <td>Auto Goal Breakdown</td>
+                  <td>{{(analysis.stats.propAutoLow * 100).toFixed(2)}} %</td>
+                  <td>{{(analysis.stats.propAutoOuter * 100).toFixed(2)}} %</td>
+                  <td>{{(analysis.stats.propAutoInner * 100).toFixed(2)}} %</td>
+                </tr>
+                <tr>
+                  <td>Tele Goal Breakdown</td>
+                  <td>{{(analysis.stats.propTeleLow * 100).toFixed(2)}} %</td>
+                  <td>{{(analysis.stats.propTeleOuter * 100).toFixed(2)}} %</td>
+                  <td>{{(analysis.stats.propTeleInner * 100).toFixed(2)}} %</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="analysisCharts">
+              <shootingChart
+                v-if="shootingDataset"
+                :chartData="shootingDataset"
+                chartTitle="Average Shots on Target - 1st row is Autonomous, 2nd is Teleop"
+              ></shootingChart>
+              <deviationChart
+                v-if="distDataset"
+                :chartData="distDataset"
+                chartTitle="Population Scoring Distribution"
+                :color="currentColor"
+              ></deviationChart>
+              <deviationChart
+                v-if="cumulativeDataset"
+                :chartData="cumulativeDataset"
+                chartTitle="Cumulative Scoring Distribution"
+                :color="currentColor"
+              ></deviationChart>
+              <boxPlotChart
+                :boxData="boxDataset"
+                :histogramData="histogramDataset"
+                :color="currentColor"
+                chartTitle="Scoring Distribution and Frequency"
+              ></boxPlotChart>
+            </div>
+          </div>
+          <hr />
+        </div>
+      </template>
+    </transition>
   </div>
 </template>
 
@@ -230,6 +268,8 @@
 import * as config from "@/config.js";
 import heatmap from "@/components/teamHeatmap.vue";
 import shootingChart from "@/components/charts/shootingProportions.js";
+import deviationChart from "@/components/charts/deviation.js";
+import boxPlotChart from "@/components/charts/teamBoxplot.vue";
 import axios from "axios";
 
 export default {
@@ -244,6 +284,10 @@ export default {
       analysis: null,
       accuracy: null,
       shootingDataset: null,
+      distDataset: null,
+      cumulativeDataset: null,
+      boxDataset: null,
+      histogramDataset: null,
       showZero: true,
       showTwo: true,
       showFour: true,
@@ -262,14 +306,39 @@ export default {
   },
   components: {
     heatmap,
-    shootingChart
+    shootingChart,
+    deviationChart,
+    boxPlotChart
   },
   computed: {
     team() {
       return this.$store.state.team;
+    },
+    currentColor() {
+      return `${Math.floor(Math.random() * 255)}, ${Math.floor(
+        Math.random() * 255
+      )}, ${Math.floor(Math.random() * 255)}`;
     }
   },
   methods: {
+    color() {
+      return `${Math.floor(Math.random() * 255)}, ${Math.floor(
+        Math.random() * 255
+      )}, ${Math.floor(Math.random() * 255)}`;
+    },
+    findDuplicates(original) {
+      let counts = new Object(),
+        duplicate = new Object();
+      original.forEach(x => {
+        counts[x] = (counts[x] || 0) + 1;
+      });
+      for (var key in counts) {
+        if (counts.hasOwnProperty(key)) {
+          counts[key] > 1 ? (duplicate[key] = counts[key]) : duplicate;
+        }
+      }
+      return duplicate;
+    },
     getTeamInfo() {
       // get tba info
       axios({
@@ -312,10 +381,7 @@ export default {
       // get image paths
       axios({
         method: "GET",
-        url: `${config.hostname}/scouting/robot`,
-        headers: {
-          "x-stats-team": this.team
-        }
+        url: `${config.hostname}/scouting/robot/${this.team}`
       })
         .then(res => {
           this.imagePaths = res.data;
@@ -353,13 +419,26 @@ export default {
         url: `${config.hostname}/stats/${this.team}`
       })
         .then(res => {
+          let color1 = this.color(),
+            color2 = this.color(),
+            color3 = this.color();
           this.analysis = res.data;
           this.shootingDataset = {
             labels: ["Lower Goal", "Outer Goal", "Inner Goal"],
             datasets: [
               {
                 label: "Auto",
-                backgroundColor: ["#ff8256", "#0776ca", "#eefdf6"],
+                backgroundColor: [
+                  `rgba(${color1},0.5)`,
+                  `rgba(${color2}, 0.5)`,
+                  `rgba(${color3}, 0.5)`
+                ],
+                borderWidth: 2,
+                borderColor: [
+                  `rgb(${color1})`,
+                  `rgb(${color2})`,
+                  `rgb(${color3})`
+                ],
                 data: [
                   this.analysis.stats.avgAutoLow,
                   this.analysis.stats.avgAutoOuter,
@@ -368,7 +447,18 @@ export default {
               },
               {
                 label: "Tele",
-                backgroundColor: ["#d69d24", "#1ebd8e", "#b096ff"],
+                backgroundColor: [
+                  `rgba(${color1},0.5)`,
+                  `rgba(${color2}, 0.5)`,
+                  `rgba(${color3}, 0.5)`
+                ],
+                borderWidth: 2,
+                borderColor: [
+                  `rgb(${color1})`,
+                  `rgb(${color2})`,
+                  `rgb(${color3})`
+                ],
+
                 data: [
                   this.analysis.stats.avgTeleLow,
                   this.analysis.stats.avgTeleOuter,
@@ -377,6 +467,68 @@ export default {
               }
             ]
           };
+          this.distDataset = {
+            datasets: [
+              {
+                label: this.team,
+                data: new Array()
+              }
+            ]
+          };
+          for (let i = 0; i < this.analysis.scores.length; i++) {
+            this.distDataset.datasets[0].data.push({
+              x: this.analysis.scores[i],
+              y: this.analysis.dist[i]
+            });
+          }
+          this.cumulativeDataset = {
+            datasets: [
+              {
+                label: this.team,
+                data: new Array()
+              }
+            ]
+          };
+          for (let i = 0; i < this.analysis.scores.length; i++) {
+            this.cumulativeDataset.datasets[0].data.push({
+              x: this.analysis.scores[i],
+              y: this.analysis.cumulative[i]
+            });
+          }
+          this.boxDataset = {
+            labels: [this.team],
+            datasets: [
+              {
+                label: this.team,
+                borderColor: `rgb(${this.currentColor})`,
+                borderWidth: 3,
+                backgroundColor: `rgba(${this.currentColor}, 0.5)`,
+                outlierColor: `rgb(${this.currentColor})`,
+                outlierRadius: 5,
+                data: [this.analysis.scores]
+              }
+            ]
+          };
+          this.histogramDataset = {
+            datasets: [
+              {
+                label: this.team,
+                borderColor: `rgb(${this.currentColor})`,
+                borderWidth: 2,
+                backgroundColor: `rgba(${this.currentColor}, 0.5)`,
+                data: new Array()
+              }
+            ]
+          };
+          let duplicates = this.findDuplicates(this.analysis.scores);
+          for (let i = 0; i < this.analysis.scores.length; i++) {
+            this.histogramDataset.datasets[0].data.push({
+              x: this.analysis.scores[i],
+              y: duplicates[this.analysis.scores[i]]
+                ? duplicates[this.analysis.scores[i]]
+                : 1
+            });
+          }
         })
         .catch(err => {
           console.warn(err);
@@ -398,7 +550,6 @@ export default {
   },
   watch: {
     team: function() {
-      // console.log(this.team);
       this.loadNewTeam();
     }
   }
@@ -414,21 +565,46 @@ span {
   margin-right: 15px;
 }
 
+.shootingHeatmap {
+  width: 600px;
+}
+
 .image-container {
   display: flex;
   flex-flow: row wrap;
 }
 
-.robot-image {
-  width: 33vw;
+.image-container > * {
+  min-width: 33vw;
+  max-width: 50%;
+  flex: 1;
+}
+
+.analysisCharts {
+  display: flex;
+  flex-flow: row wrap;
+}
+.analysisCharts > * {
+  min-width: 33vw;
+  flex: 1;
 }
 
 @media only screen and (max-width: 971px) {
+  .shootingHeatmap {
+    width: 100%;
+  }
   .image-container {
     display: block;
   }
   .robot-image {
-    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+  .analysisCharts {
+    display: block;
+  }
+  .analysisCharts > * {
+    max-width: 100vw;
   }
 }
 

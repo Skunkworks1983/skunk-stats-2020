@@ -85,24 +85,20 @@ router.put('/data/shooting', (req, res) => {
 })
 
 // Send urls to the images
-router.get('/robot', (req, res) => {
-  if (req.header('x-stats-team')) {
-    glob(`${__dirname}/../public/robots/${req.header('x-stats-team')}*.jpg`, (err, files) => {
-      if (err) {
-        console.warn(err);
-        return customRes.serverError(res);
-      } else if (files.length > 0) {
-        let absPaths = new Array;
-        files.forEach(element => absPaths.push(`http://${customRes.path}/robots/${element.split('/').pop()}`));
-        // res.send(JSON.stringify(absPaths.sort((a, b) => b.split('.')[1] - a.split('.')[1])));
-        res.json(absPaths);
-      } else {
-        res.json([`http://${customRes.path}/robots/default.jpg`]);
-      }
-    })
-  } else {
-    customRes.invalidHeaders(res);
-  }
+router.get('/robot/:team', (req, res) => {
+  glob(`${__dirname}/../public/robots/${utils.handleDigits(req.params.team)}*.jpg`, (err, files) => {
+    if (err) {
+      console.warn(err);
+      return customRes.serverError(res);
+    } else if (files.length > 0) {
+      let absPaths = new Array;
+      files.forEach(element => absPaths.push(`http://${customRes.path}/robots/${element.split('/').pop()}`));
+      // res.send(JSON.stringify(absPaths.sort((a, b) => b.split('.')[1] - a.split('.')[1])));
+      res.json(absPaths);
+    } else {
+      res.json([`http://${customRes.path}/robots/default.jpg`]);
+    }
+  })
 })
 
 // TBA request redirect

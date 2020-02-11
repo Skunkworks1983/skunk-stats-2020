@@ -1,8 +1,12 @@
-<template></template>
+<template>
+  <div class="qualMatches"></div>
+</template>
 
 <script>
-export default {};
+export default {
+  name: "qualMatches"
+};
 </script>
 
-<style>
+<style scoped>
 </style>

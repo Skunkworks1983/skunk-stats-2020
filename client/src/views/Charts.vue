@@ -27,7 +27,7 @@
         v-if="averages"
         :chart-data="averages"
         :chart-title="title"
-        :width="this.$refs.container.width"
+        :width="chartWidth"
         :height="(averages.labels.length * 15) + 100"
       ></stack>
     </transition>
@@ -92,10 +92,15 @@ export default {
       return this.eventOnly
         ? `${config.hostname}/stats/${this.event}/averages`
         : `${config.hostname}/stats/${this.event}/averages/all`;
+    },
+    chartWidth() {
+      return this.$refs.container.width;
     }
   },
   mounted() {
-    this.getEventAverages();
+    if (this.event) {
+      this.getEventAverages();
+    }
   },
   watch: {
     event: function() {

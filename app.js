@@ -95,7 +95,7 @@ app.post('/pit/upload/images', usersMiddleware.protectedRoute, (req, res) => {
         cb(null, path.join(__dirname, 'public', 'robots'));
       },
       filename: (req, file, cb) => {
-        cb(null, `${req.header('x-stats-team')}.${Date.now()}.${utils.resolveJPGExtension(file.originalname.split('.')[file.originalname.split('.').length - 1])}`)
+        cb(null, `${utils.handleDigits(parseInt(req.header('x-stats-team')))}.${Date.now()}.${utils.resolveJPGExtension(file.originalname.split('.')[file.originalname.split('.').length - 1])}`)
       }
     });
     let upload = multer({

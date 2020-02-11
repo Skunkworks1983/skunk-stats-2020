@@ -6,6 +6,9 @@ const customRes = require('../lib/customResponses');
 const matchesDB = require('../lib/matchesDB');
 const axios = require('axios');
 const keys = require('../key');
+const {
+  jStat
+} = require('jstat')
 
 var router = express.Router();
 
@@ -58,7 +61,7 @@ router.get('/:event/averages/all', usersMiddleware.protectedRoute, (req, res) =>
         if (err) {
           console.error(err);
           return customRes.serverError(res)
-        } else if (result.length > 1 && teams.length > 1) {
+        } else if (result.length > 0 && teams.length > 0) {
           let chartData = utils.eventAveragesChart(result, teams);
           res.status(200).json({
             labels: teams,
@@ -148,9 +151,16 @@ router.get('/:team', usersMiddleware.protectedRoute, (req, res) => {
       console.error(err);
       return customRes.serverError(res);
     } else if (result.length > 0) {
+      let stdDev = utils.standardDeviation(result);
       res.json({
         raw: result,
-        stats: utils.average(result)
+        stats: utils.average(result),
+        std: stdDev.std,
+        avg: stdDev.avg,
+        cumulative: stdDev.cumulative,
+        dist: stdDev.dist,
+        scores: stdDev.scores,
+        boxPlot: stdDev.scores
       })
     } else {
       return customRes.notFound(res)
