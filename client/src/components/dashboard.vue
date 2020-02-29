@@ -231,6 +231,24 @@
                 </tr>
               </tbody>
             </table>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <td>#</td>
+                  <td>Avg Park</td>
+                  <td>Avg Hang</td>
+                  <td>Avg Buddy Climb</td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Climb Percentage</td>
+                  <td>{{(analysis.stats.avgPark * 100).toFixed(2)}} %</td>
+                  <td>{{(analysis.stats.avgHang * 100).toFixed(2)}} %</td>
+                  <td>{{(analysis.stats.avgBuddyHang * 100).toFixed(2)}} %</td>
+                </tr>
+              </tbody>
+            </table>
             <div class="analysisCharts">
               <shootingChart
                 v-if="shootingDataset"
@@ -241,18 +259,18 @@
                 v-if="distDataset"
                 :chartData="distDataset"
                 chartTitle="Population Scoring Distribution"
-                :color="currentColor"
+                :color="themeColor"
               ></deviationChart>
               <deviationChart
                 v-if="cumulativeDataset"
                 :chartData="cumulativeDataset"
                 chartTitle="Cumulative Scoring Distribution"
-                :color="currentColor"
+                :color="themeColor"
               ></deviationChart>
               <boxPlotChart
                 :boxData="boxDataset"
                 :histogramData="histogramDataset"
-                :color="currentColor"
+                :color="themeColor"
                 chartTitle="Scoring Distribution and Frequency"
               ></boxPlotChart>
             </div>
@@ -265,7 +283,6 @@
 </template>
 
 <script>
-import * as config from "@/config.js";
 import heatmap from "@/components/teamHeatmap.vue";
 import shootingChart from "@/components/charts/shootingProportions.js";
 import deviationChart from "@/components/charts/deviation.js";
@@ -301,7 +318,8 @@ export default {
       showWeek4: true,
       showWeek5: true,
       showWeek6: true,
-      showWeek8: true
+      showWeek8: true,
+      themeColor: "29, 181, 136"
     };
   },
   components: {
@@ -313,11 +331,6 @@ export default {
   computed: {
     team() {
       return this.$store.state.team;
-    },
-    currentColor() {
-      return `${Math.floor(Math.random() * 255)}, ${Math.floor(
-        Math.random() * 255
-      )}, ${Math.floor(Math.random() * 255)}`;
     }
   },
   methods: {
@@ -343,7 +356,7 @@ export default {
       // get tba info
       axios({
         method: "GET",
-        url: `${config.hostname}/scouting/tba`,
+        url: `/scouting/tba`,
         headers: {
           "x-stats-tba-redirect-url": `https://www.thebluealliance.com/api/v3/team/frc${this.team}`
         }
@@ -360,7 +373,7 @@ export default {
       // get heatmap info
       axios({
         method: "GET",
-        url: `${config.hostname}/stats/shooting/robot`,
+        url: `/stats/shooting/robot`,
         headers: {
           "x-stats-team": this.team
         }
@@ -381,7 +394,7 @@ export default {
       // get image paths
       axios({
         method: "GET",
-        url: `${config.hostname}/scouting/robot/${this.team}`
+        url: `/scouting/robot/${this.team}`
       })
         .then(res => {
           this.imagePaths = res.data;
@@ -395,7 +408,7 @@ export default {
       // get pit data
       axios({
         method: "GET",
-        url: `${config.hostname}/stats/pit`,
+        url: `/stats/pit`,
         headers: {
           "x-stats-team": this.team
         }
@@ -416,11 +429,11 @@ export default {
       // get analysis data
       axios({
         method: "GET",
-        url: `${config.hostname}/stats/${this.team}`
+        url: `/stats/${this.team}`
       })
         .then(res => {
           let color1 = this.color(),
-            color2 = this.color(),
+            color2 = this.themeColor,
             color3 = this.color();
           this.analysis = res.data;
           this.shootingDataset = {
@@ -500,10 +513,10 @@ export default {
             datasets: [
               {
                 label: this.team,
-                borderColor: `rgb(${this.currentColor})`,
+                borderColor: `rgb(${this.themeColor})`,
                 borderWidth: 3,
-                backgroundColor: `rgba(${this.currentColor}, 0.5)`,
-                outlierColor: `rgb(${this.currentColor})`,
+                backgroundColor: `rgba(${this.themeColor}, 0.5)`,
+                outlierColor: `rgb(${this.themeColor})`,
                 outlierRadius: 5,
                 data: [this.analysis.scores]
               }
@@ -513,9 +526,9 @@ export default {
             datasets: [
               {
                 label: this.team,
-                borderColor: `rgb(${this.currentColor})`,
+                borderColor: `rgb(${this.themeColor})`,
                 borderWidth: 2,
-                backgroundColor: `rgba(${this.currentColor}, 0.5)`,
+                backgroundColor: `rgba(${this.themeColor}, 0.5)`,
                 data: new Array()
               }
             ]
@@ -529,6 +542,9 @@ export default {
                 : 1
             });
           }
+          // this.dist = {
+          //   datasets: [{ label: this.team, data: this.analysis.gauss }]
+          // };
         })
         .catch(err => {
           console.warn(err);
@@ -546,7 +562,9 @@ export default {
     }
   },
   mounted() {
-    this.loadNewTeam();
+    if (this.team) {
+      this.loadNewTeam();
+    }
   },
   watch: {
     team: function() {

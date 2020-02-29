@@ -35,13 +35,13 @@ export default new Vuex.Store({
       state.token = token;
     },
     setTeam: (state, team) => {
-      state.team = team
+      state.team = team;
     },
     setEvent: (state, event) => {
-      state.event = event
+      state.event = event;
     },
     setMatch: (state, match) => {
-      state.match = match
+      state.match = match;
     },
     reset: state => {
       Object.assign(state, defaultState());

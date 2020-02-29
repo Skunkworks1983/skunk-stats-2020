@@ -120,7 +120,6 @@
 </template>
 
 <script>
-import * as config from "../config.js";
 import axios from "axios";
 
 export default {
@@ -160,7 +159,7 @@ export default {
         // this.$emit("registration-submitted", registration);
         axios({
           method: "POST",
-          url: `${config.hostname}/users/register`,
+          url: `/users/register`,
           data: registration,
           validateStatus: status => {
             return status == 201;

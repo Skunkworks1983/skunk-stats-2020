@@ -1,6 +1,6 @@
 <template>
   <div class="user">
-    <h1>Account Management ~ WIP</h1>
+    <h1>Account Management</h1>
     <hr />
     <div class="container">
       <div class="box">
@@ -45,6 +45,9 @@ export default {
     logout() {
       this.$store.dispatch("logout");
       this.$router.push({ path: "/login" });
+      setTimeout(() => {
+        location.reload(true);
+      }, 500);
     }
   }
 };

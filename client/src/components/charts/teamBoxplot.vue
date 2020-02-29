@@ -15,7 +15,8 @@ export default {
   props: {
     chartTitle: String,
     boxData: Object,
-    histogramData: Object
+    histogramData: Object,
+    color: String
   },
   data() {
     return {
@@ -33,7 +34,7 @@ export default {
   },
   methods: {
     drawBoxplot() {
-      window.boxplot = new Chart(this.boxCtx, {
+      this.boxplot = new Chart(this.boxCtx, {
         type: "horizontalBoxplot",
         data: this.boxData,
         options: {

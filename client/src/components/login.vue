@@ -46,7 +46,6 @@
 </template>
 
 <script>
-import * as config from "../config.js";
 import axios from "axios";
 
 export default {
@@ -73,7 +72,7 @@ export default {
       };
       axios({
         method: "POST",
-        url: `${config.hostname}/users/login`,
+        url: `/users/login`,
         data: credentials
       })
         .then(res => {

@@ -6,9 +6,6 @@ const customRes = require('../lib/customResponses');
 const matchesDB = require('../lib/matchesDB');
 const axios = require('axios');
 const keys = require('../key');
-const {
-  jStat
-} = require('jstat')
 
 var router = express.Router();
 
@@ -31,7 +28,7 @@ router.get('/pit', usersMiddleware.protectedRoute, (req, res) => {
 })
 
 // get team averages for the whole event for stack chart
-router.get('/:event/averages', usersMiddleware.protectedRoute, (req, res) => {
+router.get('/:event/averages', (req, res) => {
   matchesDB.query(`SELECT * FROM matches2020 WHERE eventName = '${utils.escape(req.params.event)}'`, (err, result) => {
     if (err) {
       console.error(err);
@@ -39,12 +36,12 @@ router.get('/:event/averages', usersMiddleware.protectedRoute, (req, res) => {
     } else if (result.length > 0) {
       res.json(utils.eventAveragesChart(result))
     } else {
-      return customRes.notFound(res)
+      return customRes.noEntryFound(res)
     }
   })
 })
 
-router.get('/:event/averages/all', usersMiddleware.protectedRoute, (req, res) => {
+router.get('/:event/averages/all', (req, res) => {
   axios({
       method: 'GET',
       url: `https://www.thebluealliance.com/api/v3/event/${req.params.event}/teams/simple`,
@@ -136,7 +133,7 @@ router.get('/:event/averages/all', usersMiddleware.protectedRoute, (req, res) =>
       })
     })
     .catch(err => {
-      if (err.response.status === 404) {
+      if (err.response && err.response.status === 404) {
         return customRes.notFound(res)
       } else {
         console.log(err);
@@ -145,7 +142,7 @@ router.get('/:event/averages/all', usersMiddleware.protectedRoute, (req, res) =>
     })
 })
 
-router.get('/:team', usersMiddleware.protectedRoute, (req, res) => {
+router.get('/:team', (req, res) => {
   matchesDB.query(`SELECT * FROM matches2020 WHERE team = ${utils.escape(req.params.team)};`, (err, result) => {
     if (err) {
       console.error(err);
@@ -159,22 +156,22 @@ router.get('/:team', usersMiddleware.protectedRoute, (req, res) => {
         avg: stdDev.avg,
         cumulative: stdDev.cumulative,
         dist: stdDev.dist,
+        // dist: utils.generateGaussianCurve(stdDev),
         scores: stdDev.scores,
-        boxPlot: stdDev.scores
+        boxPlot: stdDev.scores,
+        gauss: utils.generateGaussianCurve(stdDev)
       })
     } else {
-      return customRes.notFound(res)
+      return customRes.noEntryFound(res)
     }
   })
 })
 
 // get accuracy data on a team
-router.get('/:team/accuracy', usersMiddleware.protectedRoute, (req, res) => {
-
-})
+router.get('/:team/accuracy', (req, res) => {})
 
 // Get shooting data for 3 robots
-router.get('/shooting/alliance', usersMiddleware.protectedRoute, (req, res) => {
+router.get('/shooting/alliance', (req, res) => {
   if (req.header('x-stats-teams')) {
     matchesDB.query(`SELECT * FROM shootingData WHERE team IN(${utils.escape(req.header('x-stats-teams').split(', ').toString())});`, (err, result) => {
       if (err) {
@@ -190,7 +187,7 @@ router.get('/shooting/alliance', usersMiddleware.protectedRoute, (req, res) => {
 })
 
 // Get shooting data on 1 robot
-router.get('/shooting/robot', usersMiddleware.protectedRoute, (req, res) => {
+router.get('/shooting/robot', (req, res) => {
   if (req.header('x-stats-team')) {
     matchesDB.query(`SELECT * FROM shootingData WHERE team='${utils.escape(req.header('x-stats-team'))}';`, (err, result) => {
       if (err) {
@@ -203,6 +200,69 @@ router.get('/shooting/robot', usersMiddleware.protectedRoute, (req, res) => {
   } else {
     return customRes.invalidHeaders(res);
   }
+})
+
+// Send data for qual matches
+router.get('/:event/:match', (req, res) => {
+  axios({
+    method: 'GET',
+    url: `https://www.thebluealliance.com/api/v3/match/${req.params.event}_qm${req.params.match}/simple`,
+    headers: {
+      'X-TBA-Auth-Key': keys.TBA_key,
+      'User-Agent': 'Skunk-Stats'
+    },
+  }).then(response => {
+    let blueData = utils.getAllianceData(matchesDB, response.data.alliances.blue.team_keys.map(e => e.substring(3)));
+    let redData = utils.getAllianceData(matchesDB, response.data.alliances.red.team_keys.map(e => e.substring(3)));
+    Promise.all([redData, blueData]).then(data => {
+      res.status(200).json({
+        red: response.data.alliances.red.team_keys.map(e => e.substring(3)),
+        blue: response.data.alliances.blue.team_keys.map(e => e.substring(3)),
+        redRaw: utils.scores(data[0]),
+        blueRaw: utils.scores(data[1]),
+        redCurve: utils.generateGaussianCurve(utils.standardDeviation(data[0])),
+        blueCurve: utils.generateGaussianCurve(utils.standardDeviation(data[1])),
+      })
+    })
+  }).catch(err => {
+    if (err.response && err.response.status === 404) {
+      return customRes.notFound(res)
+    } else {
+      console.log(err);
+      return customRes.errorUnspecified(res);
+    }
+  })
+})
+
+router.get('/:event/:match/strict', (req, res) => {
+  axios({
+    method: 'GET',
+    url: `https://www.thebluealliance.com/api/v3/match/${req.params.event}_qm${req.params.match}/simple`,
+    headers: {
+      'X-TBA-Auth-Key': keys.TBA_key,
+      'User-Agent': 'Skunk-Stats'
+    },
+  }).then(response => {
+    let blueData = utils.getStrictAllianceData(matchesDB, response.data.alliances.blue.team_keys.map(e => e.substring(3)), req.params.event);
+    let redData = utils.getStrictAllianceData(matchesDB, response.data.alliances.red.team_keys.map(e => e.substring(3)), req.params.event);
+    Promise.all([redData, blueData]).then(data => {
+      res.status(200).json({
+        red: response.data.alliances.red.team_keys.map(e => e.substring(3)),
+        blue: response.data.alliances.blue.team_keys.map(e => e.substring(3)),
+        redRaw: utils.scores(data[0]),
+        blueRaw: utils.scores(data[1]),
+        redCurve: utils.generateGaussianCurve(utils.standardDeviation(data[0])),
+        blueCurve: utils.generateGaussianCurve(utils.standardDeviation(data[1])),
+      })
+    })
+  }).catch(err => {
+    if (err.response && err.response.status === 404) {
+      return customRes.notFound(res)
+    } else {
+      console.log(err);
+      return customRes.errorUnspecified(res);
+    }
+  })
 })
 
 module.exports = router;

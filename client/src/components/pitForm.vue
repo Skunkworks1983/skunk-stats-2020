@@ -211,7 +211,6 @@
 
 <script>
 import axios from "axios";
-import * as config from "@/config";
 
 export default {
   name: "pitForm",
@@ -241,7 +240,7 @@ export default {
       // form upload
       axios({
         method: "POST",
-        url: `${config.hostname}/pit/upload`,
+        url: `/pit/upload`,
         data: {
           team: this.team,
           drivetrainType: this.drivetrainType,
@@ -268,7 +267,7 @@ export default {
       // image upload
       axios({
         method: "POST",
-        url: `${config.hostname}/pit/upload/images`,
+        url: `/pit/upload/images`,
         data: this.getFiles(),
         headers: {
           "x-stats-team": this.team

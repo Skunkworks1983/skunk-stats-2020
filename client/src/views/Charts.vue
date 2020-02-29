@@ -13,7 +13,7 @@
           v-model="requestedEvent"
         />
         <span>
-          <input type="checkbox" name="eventOnly" id="eventOnly" disabled v-model="eventOnly" />
+          <input type="checkbox" name="eventOnly" id="eventOnly" v-model="eventOnly" />
           <label for="eventOnly">Get data from this event only</label>
         </span>
         <br />
@@ -38,8 +38,6 @@
 </template>
 
 <script>
-import * as config from "@/config.js";
-// import * as utils from "@/utils.js";
 import stack from "@/components/charts/stack.js";
 import axios from "axios";
 
@@ -66,7 +64,9 @@ export default {
       this.error = null;
       axios({
         method: "GET",
-        url: this.averagesURL
+        url: this.eventOnly
+          ? `/stats/${this.event}/averages`
+          : `/stats/${this.event}/averages/all`
       })
         .then(res => {
           this.averages = res.data;
@@ -87,11 +87,6 @@ export default {
     },
     event() {
       return this.$store.state.event;
-    },
-    averagesURL() {
-      return this.eventOnly
-        ? `${config.hostname}/stats/${this.event}/averages`
-        : `${config.hostname}/stats/${this.event}/averages/all`;
     },
     chartWidth() {
       return this.$refs.container.width;

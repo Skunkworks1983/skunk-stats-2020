@@ -26,7 +26,6 @@
 </template>
 
 <script>
-import * as config from "../config.js";
 import dashboard from "@/components/dashboard.vue";
 
 export default {
